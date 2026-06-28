@@ -13,6 +13,10 @@ import FixtureDetail from "./pages/football/FixtureDetail";
 import Standings from "./pages/football/Standings";
 import WorldCupAnalytics from "./pages/football/WorldCupAnalytics";
 
+import QuestboardHome from "./pages/questboard/QuestboardHome";
+import QuestList from "./pages/questboard/QuestList";
+import QuestDetail from "./pages/questboard/QuestDetail";
+
 type FootballPage =
   | "football-home"
   | "football-leagues"
@@ -22,7 +26,9 @@ type FootballPage =
   | "football-standings"
   | "football-worldcup";
 
-type Page = "landing" | "doors" | "login" | "reset-password" | DoorFeature | FootballPage;
+type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail";
+
+type Page = "landing" | "doors" | "login" | "reset-password" | DoorFeature | FootballPage | QuestboardPage;
 
 const featureCopy: Record<DoorFeature, {
   eyebrow: string;
@@ -62,6 +68,7 @@ export default function App() {
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [selectedLeagueName, setSelectedLeagueName] = useState<string>("");
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
+  const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
   const isAdmin = isLoggedIn;
 
@@ -111,7 +118,7 @@ export default function App() {
                 } else if (feature === "esport") {
                   setPage("esport" as Page);
                 } else if (feature === "questboard") {
-                  setPage("questboard" as Page);
+                  setPage("questboard-home");
                 } else {
                   setPage(feature);
                 }
@@ -148,7 +155,7 @@ export default function App() {
           </Screen>
         )}
 
-        {(page === "esport" || page === "questboard" || page === "football") && (
+        {(page === "esport" || page === "football") && (
           <Screen key={page}>
             <FeaturePage
               feature={page as DoorFeature}
@@ -156,6 +163,37 @@ export default function App() {
               isLoggedIn={isLoggedIn}
               onLogin={goLogin}
               onLogout={logout}
+            />
+          </Screen>
+        )}
+
+        {/* QUESTBOARD MODULE ROUTES */}
+        {page === "questboard-home" && (
+          <Screen key="questboard-home">
+            <QuestboardHome
+              onBack={() => setPage("doors")}
+              onBrowseQuests={() => setPage("questboard-list")}
+              onMyProgress={() => alert("My Progress coming soon!")}
+            />
+          </Screen>
+        )}
+        {page === "questboard-list" && (
+          <Screen key="questboard-list">
+            <QuestList
+              onBack={() => setPage("questboard-home")}
+              onQuestClick={(id) => {
+                setSelectedQuestId(id);
+                setPage("questboard-detail");
+              }}
+            />
+          </Screen>
+        )}
+        {page === "questboard-detail" && selectedQuestId && (
+          <Screen key="questboard-detail">
+            <QuestDetail
+              questId={selectedQuestId}
+              isLoggedIn={isLoggedIn}
+              onBack={() => setPage("questboard-list")}
             />
           </Screen>
         )}
