@@ -28,7 +28,12 @@ type FootballPage =
 
 type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail";
 
-type Page = "landing" | "doors" | "login" | "reset-password" | DoorFeature | FootballPage | QuestboardPage;
+// App.tsx top — Page type
+type Page = 
+  | "landing" | "doors" | "login" | "reset-password"
+  | "esport" | "questboard"   
+  | FootballPage
+  | QuestboardPage;
 
 const featureCopy: Record<DoorFeature, {
   eyebrow: string;
@@ -83,9 +88,36 @@ export default function App() {
     }
   }, []);
 
+      // Session restore on refresh
+    useEffect(() => {
+      fetch("/api/auth/me", { credentials: "include" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.id) {
+            setIsLoggedIn(true);
+            // Current page restore — localStorage use කරලා
+            const savedPage = localStorage.getItem("currentPage") as Page | null;
+            if (savedPage && savedPage !== "landing" && savedPage !== "login") {
+              setPage(savedPage);
+            } else {
+              setPage("doors");
+            }
+          }
+        })
+        .catch(() => {});
+    }, []);
+
+    // Page change වෙන සෑම විටම localStorage update
+    useEffect(() => {
+      if (page !== "landing" && page !== "login") {
+        localStorage.setItem("currentPage", page);
+      }
+    }, [page]);
+
   const goLogin = () => setPage("login");
   const logout = () => {
     setIsLoggedIn(false);
+    localStorage.removeItem("currentPage"); 
     setPage("landing");
   };
   const loginSuccess = () => {
@@ -155,7 +187,7 @@ export default function App() {
           </Screen>
         )}
 
-        {(page === "esport" || page === "football") && (
+        {page === "esport" && (
           <Screen key={page}>
             <FeaturePage
               feature={page as DoorFeature}
@@ -199,21 +231,31 @@ export default function App() {
         )}
 
         {/* FOOTBALL MODULE ROUTES */}
-        {page === "football-home" && (
-          <Screen key="football-home">
-            <FootballHome
-              isLoggedIn={isLoggedIn}
-              onLeagues={() => setPage("football-leagues")}
-              onClubs={() => setPage("football-clubs")}
-              onFixtures={() => {
-                setSelectedLeagueId(null);
-                setPage("football-fixtures");
-              }}
-              onStandings={() => setPage("football-leagues")}
-              onWorldCup={() => setPage("football-worldcup")}
-            />
-          </Screen>
-        )}
+          {page === "football-home" && (
+            <Screen key="football-home">
+              <FootballHome
+                isLoggedIn={isLoggedIn}
+                onLeagues={() => setPage("football-leagues")}
+                onClubs={() => setPage("football-clubs")}
+                onFixtures={() => {
+                  setSelectedLeagueId(null);
+                  setPage("football-fixtures");
+                }}
+                onStandings={() => setPage("football-leagues")}
+                
+                onWorldCup={() => setPage("football-worldcup")}
+                onBackToDoors={() => setPage(isLoggedIn ? "doors" : "login")}
+                onLogout={() => {
+                  fetch("/api/auth/signout", { method: "POST", credentials: "include" })
+                    .finally(() => {
+                      setIsLoggedIn(false);
+                      setPage("landing");
+                    });
+                }}
+                
+              />
+            </Screen>
+          )}
         {page === "football-leagues" && (
           <Screen key="football-leagues">
             <Leagues
