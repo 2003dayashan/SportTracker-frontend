@@ -202,6 +202,7 @@ export default function App() {
         {page === "football-home" && (
           <Screen key="football-home">
             <FootballHome
+              isLoggedIn={isLoggedIn}
               onLeagues={() => setPage("football-leagues")}
               onClubs={() => setPage("football-clubs")}
               onFixtures={() => {

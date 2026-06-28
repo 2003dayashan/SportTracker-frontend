@@ -28,10 +28,16 @@ export default defineConfig({
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
-  // 👇 ADD THIS — Spring Boot API proxy
   server: {
     port: 5173,
     proxy: {
+      // ⚠️ More specific FIRST — /api/football/figure → Python (5001)
+      '/api/football/figure': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+      },
+      // General /api → Spring Boot (8080)
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -39,6 +45,4 @@ export default defineConfig({
       },
     },
   },
-
-  
 })
