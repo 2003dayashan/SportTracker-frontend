@@ -67,7 +67,9 @@ export default function QuestList({ onBack, onQuestClick }: QuestListProps) {
           fetchQuests(selectedCategory || undefined),
           fetchCategories().catch(() => []) // Fallback categories
         ]);
-        setQuests(questsData);
+        // Handle paginated response structure if backend returns it
+        const questsArray = questsData.content ? questsData.content : (Array.isArray(questsData) ? questsData : []);
+        setQuests(questsArray);
         setCategories(categoriesData);
       } catch (err) {
         console.error("Backend failed, using dummy data.", err);

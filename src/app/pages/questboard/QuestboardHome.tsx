@@ -2,16 +2,24 @@ import React from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, CheckCircle, List, Trophy, Zap } from "lucide-react";
 
+import { type User } from "./api";
+
 export interface QuestboardHomeProps {
   onBack: () => void;
   onBrowseQuests: () => void;
   onMyProgress: () => void;
+  onLeaderboard: () => void;
+  onAdminPanel?: () => void;
+  currentUser?: User | null;
 }
 
 export default function QuestboardHome({
   onBack,
   onBrowseQuests,
   onMyProgress,
+  onLeaderboard,
+  onAdminPanel,
+  currentUser,
 }: QuestboardHomeProps) {
   return (
     <div className="relative min-h-screen bg-[#efe9da] text-[#2b2b2b] overflow-hidden selection:bg-[#2b2b2b] selection:text-[#efe9da]">
@@ -30,13 +38,42 @@ export default function QuestboardHome({
 
       <main className="relative z-10 max-w-7xl mx-auto flex flex-col min-h-screen px-6 py-8 lg:px-12">
         <header className="flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] bg-[#efe9da]/80 px-4 py-2 font-['Space_Grotesk'] text-sm shadow-[3px_3px_0_0_rgba(43,43,43,0.35)] hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.35)] transition-all"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2.5} /> Back
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] bg-[#efe9da]/80 px-4 py-2 font-['Space_Grotesk'] text-sm shadow-[3px_3px_0_0_rgba(43,43,43,0.35)] hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.35)] transition-all"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} /> Back
+            </button>
+            
+            {currentUser && (
+              <div className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] bg-[#f7f0df] px-4 py-2 font-['Space_Grotesk'] text-sm font-bold shadow-[3px_3px_0_0_rgba(43,43,43,0.35)]">
+                <span className="text-[#2b2b2b] opacity-70">👤 {currentUser.username}</span>
+                <span className="opacity-30">|</span>
+                <span className={`uppercase tracking-widest ${currentUser.role === 'ADMIN' || currentUser.role === 'GUILD_MASTER' ? 'text-[#d9b45f]' : 'text-[#2b2b2b]'}`}>
+                  {currentUser.role}
+                </span>
+              </div>
+            )}
+
+            {currentUser?.role === "USER" && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await fetch('/api/questboard/auth/promote', { method: 'POST', credentials: 'include' });
+                    alert('Promoted to ADMIN! Please click Back, Log Out, and Log In again to see the Guild Master Office!');
+                  } catch (e) {
+                    alert('Promotion failed');
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] bg-[#d9b45f] px-4 py-2 font-['Space_Grotesk'] text-sm font-bold shadow-[3px_3px_0_0_rgba(43,43,43,0.35)] hover:-translate-y-0.5 transition-all"
+              >
+                Become Guild Master (Debug)
+              </button>
+            )}
+          </div>
           <div className="pointer-events-auto flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#2b2b2b] bg-[#efe9da]/70">
               <Trophy className="h-5 w-5" strokeWidth={2.5} />
@@ -76,18 +113,27 @@ export default function QuestboardHome({
             <div className="absolute top-6 right-6 h-3 w-3 rounded-full border-2 border-[#2b2b2b] bg-[#d9b45f]" />
             
             <div className="grid gap-4 sm:grid-cols-3 mt-4">
-              <div className="min-h-36 rounded-3xl border-[3px] border-[#2b2b2b] bg-[#efe9da] p-4 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_#d9b45f]">
+              <button 
+                onClick={onBrowseQuests}
+                className="w-full min-h-36 rounded-3xl border-[3px] border-[#2b2b2b] bg-[#efe9da] p-4 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_#d9b45f] hover:-translate-y-1 hover:shadow-[6px_6px_0_#d9b45f] transition-all cursor-pointer"
+              >
                 <List className="mb-4 h-8 w-8 text-[#2b2b2b]" />
                 <p className="font-['Bebas_Neue'] text-3xl leading-none">Browse Quests</p>
-              </div>
-              <div className="min-h-36 rounded-3xl border-[3px] border-[#2b2b2b] bg-[#efe9da] p-4 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_#d9b45f]">
+              </button>
+              <button 
+                onClick={onMyProgress}
+                className="w-full min-h-36 rounded-3xl border-[3px] border-[#2b2b2b] bg-[#efe9da] p-4 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_#d9b45f] hover:-translate-y-1 hover:shadow-[6px_6px_0_#d9b45f] transition-all cursor-pointer"
+              >
                 <CheckCircle className="mb-4 h-8 w-8 text-[#2b2b2b]" />
                 <p className="font-['Bebas_Neue'] text-3xl leading-none">Submit Proof</p>
-              </div>
-              <div className="min-h-36 rounded-3xl border-[3px] border-[#2b2b2b] bg-[#efe9da] p-4 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_#d9b45f]">
+              </button>
+              <button 
+                onClick={onLeaderboard}
+                className="w-full min-h-36 rounded-3xl border-[3px] border-[#2b2b2b] bg-[#efe9da] p-4 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_#d9b45f] hover:-translate-y-1 hover:shadow-[6px_6px_0_#d9b45f] transition-all cursor-pointer"
+              >
                 <Zap className="mb-4 h-8 w-8 text-[#2b2b2b]" />
                 <p className="font-['Bebas_Neue'] text-3xl leading-none">Earn XP</p>
-              </div>
+              </button>
             </div>
             
             <div className="mt-8 space-y-4">
@@ -104,11 +150,35 @@ export default function QuestboardHome({
               
               <button
                 onClick={onMyProgress}
-                className="flex w-full items-center justify-between rounded-full border-[3px] border-[#2b2b2b] bg-[#efe9da] px-6 py-5 font-['Bebas_Neue'] text-2xl transition-transform hover:-translate-y-0.5"
+                className="group relative overflow-hidden flex w-full items-center justify-between rounded-full border-[3px] border-[#2b2b2b] bg-[#efe9da] px-6 py-5 font-['Bebas_Neue'] text-2xl transition-transform hover:-translate-y-0.5 shadow-[4px_4px_0_rgba(43,43,43,1)]"
               >
-                <span className="tracking-wider text-[#2b2b2b]/60">02 · MY PROGRESS (LOCKED)</span>
-                <span className="opacity-60">→</span>
+                <div className="absolute inset-0 bg-[#2b2b2b] -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
+                <span className="relative z-10 tracking-wider text-[#2b2b2b] group-hover:text-[#f7f0df] transition-colors duration-300">02 · MY PROGRESS</span>
+                <span className="relative z-10 group-hover:text-[#f7f0df] transition-colors duration-300">→</span>
               </button>
+
+              <button
+                onClick={onLeaderboard}
+                className="group relative overflow-hidden flex w-full items-center justify-between rounded-full border-[3px] border-[#2b2b2b] bg-[#efe9da] px-6 py-5 font-['Bebas_Neue'] text-2xl transition-transform hover:-translate-y-0.5 shadow-[4px_4px_0_rgba(43,43,43,1)]"
+              >
+                <div className="absolute inset-0 bg-[#2b2b2b] -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
+                <span className="relative z-10 tracking-wider text-[#2b2b2b] group-hover:text-[#f7f0df] transition-colors duration-300">03 · HALL OF FAME</span>
+                <span className="relative z-10 group-hover:text-[#f7f0df] transition-colors duration-300">→</span>
+              </button>
+
+              {(() => {
+                const r = (currentUser?.role || "").toUpperCase();
+                return (r === "GUILD_MASTER" || r === "ADMIN" || r.includes("GUILD") || r.includes("ADMIN") || r.includes("MASTER"));
+              })() && (
+                <button
+                  onClick={onAdminPanel}
+                  className="group relative overflow-hidden flex w-full items-center justify-between rounded-full border-[3px] border-[#2b2b2b] bg-[#2b2b2b] text-[#f7f0df] px-6 py-5 font-['Bebas_Neue'] text-2xl transition-transform hover:-translate-y-0.5 shadow-[4px_4px_0_#d9b45f]"
+                >
+                  <div className="absolute inset-0 bg-[#d9b45f] -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
+                  <span className="relative z-10 tracking-wider group-hover:text-[#2b2b2b] transition-colors duration-300">04 · GUILD MASTER OFFICE</span>
+                  <span className="relative z-10 group-hover:text-[#2b2b2b] transition-colors duration-300">→</span>
+                </button>
+              )}
             </div>
           </motion.div>
         </section>

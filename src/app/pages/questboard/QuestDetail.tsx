@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Loader2, Upload, CheckCircle, ShieldAlert, FileText, Zap } from "lucide-react";
-import { fetchQuestById, claimQuest, submitQuest, type Quest } from "./api";
+import { fetchQuestById, claimQuest, submitQuest, type Quest, type User } from "./api";
 
 // Dummy data for demonstration if backend fails
 const DUMMY_QUEST: Quest = {
@@ -22,14 +22,16 @@ export interface QuestDetailProps {
   questId: string;
   onBack: () => void;
   isLoggedIn: boolean;
+  currentUser?: User | null;
 }
 
-export default function QuestDetail({ questId, onBack, isLoggedIn }: QuestDetailProps) {
+export default function QuestDetail({ questId, onBack, isLoggedIn, currentUser }: QuestDetailProps) {
   const [quest, setQuest] = useState<Quest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [proofText, setProofText] = useState("");
 
   useEffect(() => {
     const loadQuest = async () => {
@@ -75,14 +77,21 @@ export default function QuestDetail({ questId, onBack, isLoggedIn }: QuestDetail
 
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (!proofText.trim()) {
+      alert("Proof description is required.");
+      return;
+    }
     setActionLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      const updated = await submitQuest(questId, formData);
-      setQuest(updated);
+      formData.append("proofText", proofText);
+      if (file) {
+        formData.append("file", file);
+      }
+      await submitQuest(questId, formData);
+      setQuest(q => q ? { ...q, status: "SUBMITTED" } : q);
       setFile(null);
+      setProofText("");
     } catch (err) {
       // Dummy flow if backend fails
       if (error) {
@@ -229,26 +238,34 @@ export default function QuestDetail({ questId, onBack, isLoggedIn }: QuestDetail
               {quest.status === "CLAIMED" && (
                 <AnimatePresence mode="wait">
                   <motion.div key="claimed" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full">
-                    <form onSubmit={handleSubmitProof} className="flex flex-col gap-6">
+                    <form onSubmit={handleSubmitProof} className="flex flex-col gap-4">
                       <p className="font-['Space_Grotesk'] text-xl font-bold uppercase tracking-widest">Submit Proof</p>
                       
-                      <label className="group relative border-[3px] border-[#2b2b2b] bg-[#f7f0df] rounded-3xl p-8 cursor-pointer hover:bg-[#d9b45f]/10 transition-colors flex flex-col items-center justify-center text-center shadow-[4px_4px_0_rgba(43,43,43,0.1)] hover:shadow-[6px_6px_0_rgba(43,43,43,0.3)]">
-                        <Upload className="h-10 w-10 mb-4 opacity-80 group-hover:scale-110 transition-transform group-hover:text-[#d9b45f]" strokeWidth={2} />
-                        <span className="font-['Space_Grotesk'] text-sm font-bold tracking-wide">
-                          {file ? file.name : "BROWSE OR DROP FILE"}
+                      <textarea
+                        value={proofText}
+                        onChange={(e) => setProofText(e.target.value)}
+                        placeholder="Describe how you completed this quest..."
+                        required
+                        className="w-full rounded-2xl border-[3px] border-[#2b2b2b] bg-[#f7f0df] p-4 font-['Space_Grotesk'] min-h-[100px] outline-none focus:border-[#d9b45f] transition-colors resize-none"
+                      />
+
+                      <label className="group relative border-[3px] border-[#2b2b2b] bg-[#f7f0df] rounded-2xl p-6 cursor-pointer hover:bg-[#d9b45f]/10 transition-colors flex flex-col items-center justify-center text-center shadow-[4px_4px_0_rgba(43,43,43,0.1)] hover:shadow-[6px_6px_0_rgba(43,43,43,0.3)]">
+                        <Upload className="h-8 w-8 mb-2 opacity-80 group-hover:scale-110 transition-transform group-hover:text-[#d9b45f]" strokeWidth={2} />
+                        <span className="font-['Space_Grotesk'] text-xs font-bold tracking-wide">
+                          {file ? file.name : "ATTACH FILE (OPTIONAL)"}
                         </span>
                         <input
                           type="file"
                           className="hidden"
                           onChange={(e) => setFile(e.target.files?.[0] || null)}
-                          accept="image/*"
+                          accept="*/*"
                         />
                       </label>
 
                       <button
                         type="submit"
-                        disabled={!file || actionLoading}
-                        className="w-full rounded-full border-[3px] border-[#2b2b2b] bg-[#2b2b2b] text-[#f7f0df] px-6 py-4 font-['Space_Grotesk'] font-bold uppercase tracking-widest shadow-[6px_6px_0_#d9b45f] hover:-translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 transition-all flex items-center justify-center"
+                        disabled={!proofText.trim() || actionLoading}
+                        className="w-full mt-2 rounded-full border-[3px] border-[#2b2b2b] bg-[#2b2b2b] text-[#f7f0df] px-6 py-4 font-['Space_Grotesk'] font-bold uppercase tracking-widest shadow-[6px_6px_0_#d9b45f] hover:-translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 transition-all flex items-center justify-center"
                       >
                         {actionLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "UPLOAD PROOF"}
                       </button>
