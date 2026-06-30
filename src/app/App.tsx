@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, CalendarDays, Shield, Trophy, Users, Zap } from "lucide-react";
+import { toast } from "sonner";
 
 import { InteractiveBackground } from "./components/InteractiveBackground";
 import { DoorsPage, type DoorFeature } from "./components/DoorsPage";
@@ -705,6 +706,7 @@ function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: {
         });
         if (!res.ok) throw new Error("Failed to send reset email");
         setSuccessMsg(`Reset link sent to ${email}. Check your inbox!`);
+        toast.success(`Reset link sent to ${email}`);
         setIsLoading(false);
         return;
       }
@@ -727,6 +729,7 @@ function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: {
           body: JSON.stringify({ email, password }),
         });
         if (!loginRes.ok) throw new Error("Auto login failed after signup");
+        toast.success("Account created successfully!");
         onLoginSuccess();
       } else {
         const res = await fetch("/api/auth/signin", {
@@ -739,10 +742,13 @@ function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: {
           const err = await res.json();
           throw new Error(err.message || "Invalid email or password");
         }
+        toast.success("Welcome back!");
         onLoginSuccess();
       }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -940,9 +946,12 @@ function ResetPasswordPage({ token, onBack, onSuccess }: {
         throw new Error(err.message || "Reset failed. Link may have expired.");
       }
       setSuccessMsg("Password reset successful! Redirecting to login...");
+      toast.success("Password reset successful!");
       setTimeout(onSuccess, 2000);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }

@@ -57,22 +57,7 @@ export default function QuestboardHome({
               </div>
             )}
 
-            {currentUser?.role === "USER" && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await fetch('/api/questboard/auth/promote', { method: 'POST', credentials: 'include' });
-                    alert('Promoted to ADMIN! Please click Back, Log Out, and Log In again to see the Guild Master Office!');
-                  } catch (e) {
-                    alert('Promotion failed');
-                  }
-                }}
-                className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] bg-[#d9b45f] px-4 py-2 font-['Space_Grotesk'] text-sm font-bold shadow-[3px_3px_0_0_rgba(43,43,43,0.35)] hover:-translate-y-0.5 transition-all"
-              >
-                Become Guild Master (Debug)
-              </button>
-            )}
+
           </div>
           <div className="pointer-events-auto flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#2b2b2b] bg-[#efe9da]/70">
