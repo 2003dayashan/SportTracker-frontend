@@ -16,6 +16,10 @@ import WorldCupAnalytics from "./pages/football/WorldCupAnalytics";
 import QuestboardHome from "./pages/questboard/QuestboardHome";
 import QuestList from "./pages/questboard/QuestList";
 import QuestDetail from "./pages/questboard/QuestDetail";
+import GuildMasterPanel from "./pages/questboard/GuildMasterPanel";
+import QuestProfile from "./pages/questboard/QuestProfile";
+import QuestLeaderboard from "./pages/questboard/QuestLeaderboard";
+import { type User } from "./pages/questboard/api";
 
 type FootballPage =
   | "football-home"
@@ -26,7 +30,7 @@ type FootballPage =
   | "football-standings"
   | "football-worldcup";
 
-type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail";
+type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail" | "questboard-admin" | "questboard-profile" | "questboard-leaderboard";
 
 // App.tsx top — Page type
 type Page = 
@@ -68,6 +72,7 @@ const featureCopy: Record<DoorFeature, {
 export default function App() {
   const [page, setPage] = useState<Page>("landing");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
 
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
@@ -88,14 +93,51 @@ export default function App() {
     }
   }, []);
 
-      // Session restore on refresh
+    // Normalize role strings from DB (handles manual edits like "Guild user")
+    const normalizeRole = (role: string | undefined | null): string => {
+      if (!role) return "USER";
+      const r = role.toUpperCase().trim();
+      if (r === "ADMIN") return "ADMIN";
+      if (r === "GUILD_MASTER") return "GUILD_MASTER";
+      // Handle variations from manual DB edits
+      if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
+      return "USER";
+    };
+
+    // Session restore on refresh
     useEffect(() => {
-      fetch("/api/auth/me", { credentials: "include" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.id) {
+      const restoreSession = async () => {
+        try {
+          let userFound = false;
+          let userData = null;
+
+          // Try main auth
+          const mainRes = await fetch("/api/auth/me", { credentials: "include" });
+          if (mainRes.ok) {
+            const data = await mainRes.json();
+            if (data?.id) {
+              userFound = true;
+              userData = data;
+            }
+          }
+
+          // Try questboard auth
+          const qbRes = await fetch("/api/questboard/auth/me", { credentials: "include" });
+          if (qbRes.ok) {
+            const qbData = await qbRes.json();
+            if (qbData?.id) {
+              userFound = true;
+              userData = qbData; // Questboard data takes precedence for Questboard
+            }
+          }
+
+          if (userFound && userData) {
+            // Normalize the role to handle corrupted DB values
+            userData.role = normalizeRole(userData.role);
             setIsLoggedIn(true);
-            // Current page restore — localStorage use කරලා
+            setCurrentUser(userData);
+
+            // Current page restore
             const savedPage = localStorage.getItem("currentPage") as Page | null;
             if (savedPage && savedPage !== "landing" && savedPage !== "login") {
               setPage(savedPage);
@@ -103,8 +145,12 @@ export default function App() {
               setPage("doors");
             }
           }
-        })
-        .catch(() => {});
+        } catch (e) {
+          console.error("Session restore failed", e);
+        }
+      };
+      
+      restoreSession();
     }, []);
 
     // Page change වෙන සෑම විටම localStorage update
@@ -117,11 +163,21 @@ export default function App() {
   const goLogin = () => setPage("login");
   const logout = () => {
     setIsLoggedIn(false);
+    setCurrentUser(null);
     localStorage.removeItem("currentPage"); 
     setPage("landing");
   };
   const loginSuccess = () => {
     setIsLoggedIn(true);
+    fetch("/api/questboard/auth/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((qbData) => {
+         if (qbData?.id) {
+           qbData.role = normalizeRole(qbData.role);
+           setCurrentUser(qbData);
+         }
+      })
+      .catch(() => {});
     setPage("doors");
   };
 
@@ -205,7 +261,10 @@ export default function App() {
             <QuestboardHome
               onBack={() => setPage("doors")}
               onBrowseQuests={() => setPage("questboard-list")}
-              onMyProgress={() => alert("My Progress coming soon!")}
+              onMyProgress={() => setPage("questboard-profile")}
+              onLeaderboard={() => setPage("questboard-leaderboard")}
+              onAdminPanel={() => setPage("questboard-admin")}
+              currentUser={currentUser}
             />
           </Screen>
         )}
@@ -225,7 +284,32 @@ export default function App() {
             <QuestDetail
               questId={selectedQuestId}
               isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
               onBack={() => setPage("questboard-list")}
+            />
+          </Screen>
+        )}
+        {page === "questboard-profile" && (
+          <Screen key="questboard-profile">
+            <QuestProfile
+              isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
+              onBack={() => setPage("questboard-home")}
+            />
+          </Screen>
+        )}
+        {page === "questboard-admin" && (
+          <Screen key="questboard-admin">
+            <GuildMasterPanel
+              currentUser={currentUser}
+              onBack={() => setPage("questboard-home")}
+            />
+          </Screen>
+        )}
+        {page === "questboard-leaderboard" && (
+          <Screen key="questboard-leaderboard">
+            <QuestLeaderboard
+              onBack={() => setPage("questboard-home")}
             />
           </Screen>
         )}
