@@ -80,7 +80,7 @@ export default function App() {
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
-  const isAdmin = isLoggedIn;
+  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "GUILD_MASTER";
 
   // Check URL for reset token on page load
   useEffect(() => {
@@ -162,22 +162,33 @@ export default function App() {
 
   const goLogin = () => setPage("login");
   const logout = () => {
+    fetch("/api/auth/signout", { method: "POST", credentials: "include" }).catch(() => {});
     setIsLoggedIn(false);
     setCurrentUser(null);
     localStorage.removeItem("currentPage"); 
     setPage("landing");
   };
-  const loginSuccess = () => {
+  const loginSuccess = async () => {
     setIsLoggedIn(true);
-    fetch("/api/questboard/auth/me", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((qbData) => {
-         if (qbData?.id) {
-           qbData.role = normalizeRole(qbData.role);
-           setCurrentUser(qbData);
-         }
-      })
-      .catch(() => {});
+    let userData = null;
+    try {
+      const mainRes = await fetch("/api/auth/me", { credentials: "include" });
+      if (mainRes.ok) {
+        const data = await mainRes.json();
+        if (data?.id) userData = data;
+      }
+      const qbRes = await fetch("/api/questboard/auth/me", { credentials: "include" });
+      if (qbRes.ok) {
+        const qbData = await qbRes.json();
+        if (qbData?.id) userData = qbData;
+      }
+      if (userData) {
+        userData.role = normalizeRole(userData.role);
+        setCurrentUser(userData);
+      }
+    } catch (e) {
+      console.error("Login session fetch failed", e);
+    }
     setPage("doors");
   };
 
@@ -329,13 +340,7 @@ export default function App() {
                 
                 onWorldCup={() => setPage("football-worldcup")}
                 onBackToDoors={() => setPage(isLoggedIn ? "doors" : "login")}
-                onLogout={() => {
-                  fetch("/api/auth/signout", { method: "POST", credentials: "include" })
-                    .finally(() => {
-                      setIsLoggedIn(false);
-                      setPage("landing");
-                    });
-                }}
+                onLogout={logout}
                 
               />
             </Screen>
@@ -502,7 +507,7 @@ function FeaturePage({ feature, onBack, isLoggedIn, onLogin, onLogout }: {
   onLogout: () => void;
 }) {
   const copy = featureCopy[feature];
-  const icons = feature === "teams" ? [Users, Shield, Trophy] : feature === "matches" ? [CalendarDays, Trophy, Zap] : [Zap, Shield, Users];
+  const icons = feature === "esport" ? [Trophy, Users, Zap] : feature === "questboard" ? [CalendarDays, Zap, Trophy] : [Shield, Users, Zap];
   return (
     <div className="min-h-screen overflow-auto bg-[#efe9da] text-[#2b2b2b]">
       <div className="pointer-events-none fixed inset-0 opacity-[0.08] [background-image:linear-gradient(#2b2b2b_1px,transparent_1px),linear-gradient(90deg,#2b2b2b_1px,transparent_1px)] [background-size:46px_46px]" />
