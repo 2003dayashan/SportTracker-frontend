@@ -11,7 +11,7 @@ export interface Fixture {
   kickoffAt: string;
   leagueName: string;
   matchday: number;
-  leagueId?: string; 
+  leagueId?: string; // Included to support pre-filtering
 }
 
 export interface FixturesProps {
