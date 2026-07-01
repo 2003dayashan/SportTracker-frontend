@@ -101,12 +101,6 @@ export function DoorsPage({
           </motion.button>
 
           <div className="flex items-center gap-3">
-            <span
-              className="rounded-full border-2 border-[#2b2b2b] bg-[#efe9da]/70 px-3 py-1 uppercase tracking-[0.22em]"
-              style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11px" }}
-            >
-              The Arena
-            </span>
             {authSlot}
           </div>
         </header>

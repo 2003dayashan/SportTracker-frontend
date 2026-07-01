@@ -155,11 +155,6 @@ export default function App() {
         userData.role = normalizeRoleFromArray(roleSource);
         setIsLoggedIn(true);
         setCurrentUser(userData);
-
-        const savedPage = sessionStorage.getItem("currentPage") as Page | null;
-        if (savedPage && savedPage !== "landing" && savedPage !== "login") {
-          setPage(savedPage);
-        }
       }
         } catch (e) {
           console.error("Session restore failed", e);
@@ -169,19 +164,11 @@ export default function App() {
       restoreSession();
     }, []);
 
-    // Page change වෙන සෑම විටම sessionStorage update
-    useEffect(() => {
-      if (page !== "landing" && page !== "login") {
-        sessionStorage.setItem("currentPage", page);
-      }
-    }, [page]);
-
   const goLogin = () => setPage("login");
   const logout = () => {
     fetch("/api/auth/signout", { method: "POST", credentials: "include" }).catch(() => {});
     setIsLoggedIn(false);
     setCurrentUser(null);
-    sessionStorage.removeItem("currentPage"); 
     setPage("landing");
   };
   const loginSuccess = async () => {
@@ -468,13 +455,12 @@ function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout, onFootball }: {
           <Logo />
           <div className="pointer-events-auto flex items-center gap-3">
             <nav className="pointer-events-auto hidden items-center gap-7 font-['Space_Grotesk'] text-sm md:flex">
-              {["Teams", "Matches", "Arena", "Football", "About"].map((item) => (
+              {["contact us", "About"].map((item) => (
                 <a
                   key={item}
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    if (item === "Football") onFootball();
                   }}
                   className="relative uppercase tracking-[0.14em] opacity-80 transition-opacity hover:opacity-100"
                 >
@@ -492,26 +478,9 @@ function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout, onFootball }: {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="max-w-md"
           >
-            <span className="pointer-events-auto inline-block rounded-full border-2 border-[#2b2b2b] bg-[#efe9da]/70 px-3 py-1 font-['Space_Grotesk'] text-[11px] uppercase tracking-[0.22em]">Hand-drawn e-sports</span>
             <h1 className="mt-6 font-['Bebas_Neue'] text-[clamp(64px,9vw,132px)] leading-[0.9] tracking-[0.01em]">STICK<br />LEAGUE</h1>
             <p className="mt-2 -rotate-2 font-['Caveat'] text-[28px] leading-[1.1]">where doodles go pro.</p>
             <p className="mt-6 max-w-sm font-['Space_Grotesk'] text-base leading-[1.6] opacity-80">The whole scene is alive — kick the football to watch our star player juggle, tap again to switch the trick, or step through the portal into the arena.</p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              {[
-                ["Join the League", "bg-[#2b2b2b] text-[#f3eee1] shadow-[4px_4px_0_0_rgba(43,43,43,0.4)]"],
-                ["Watch Matches", "bg-[#efe9da]/70 shadow-[4px_4px_0_0_rgba(43,43,43,0.25)]"],
-              ].map(([label, cls]) => (
-                <motion.a
-                  key={label}
-                  href="#"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ y: 1, scale: 0.98 }}
-                  className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] px-7 py-3 font-['Space_Grotesk'] text-[15px] ${cls}`}
-                >
-                  {label}
-                </motion.a>
-              ))}
-            </div>
           </motion.div>
         </main>
         <footer className="flex flex-wrap items-center justify-between gap-3 font-['Space_Grotesk'] text-xs uppercase tracking-[0.18em] opacity-70">
