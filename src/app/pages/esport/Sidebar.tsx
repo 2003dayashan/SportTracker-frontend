@@ -11,7 +11,6 @@ export type EsportPage =
   | 'esport-matches'
   | 'esport-brackets'
   | 'esport-leaderboard'
-  | 'esport-profile'
   | 'esport-search';
 
 interface SidebarProps {
@@ -41,7 +40,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, onExit }) =>
     { name: 'BRACKETS', path: 'esport-brackets' },
     { name: 'LEADERBOARD', path: 'esport-leaderboard' },
     { name: 'SEARCH', path: 'esport-search' },
-    { name: 'PROFILE', path: 'esport-profile' },
   ];
 
   return (
