@@ -156,11 +156,9 @@ export default function App() {
         setIsLoggedIn(true);
         setCurrentUser(userData);
 
-        const savedPage = localStorage.getItem("currentPage") as Page | null;
+        const savedPage = sessionStorage.getItem("currentPage") as Page | null;
         if (savedPage && savedPage !== "landing" && savedPage !== "login") {
           setPage(savedPage);
-        } else {
-          setPage("doors");
         }
       }
         } catch (e) {
@@ -171,10 +169,10 @@ export default function App() {
       restoreSession();
     }, []);
 
-    // Page change වෙන සෑම විටම localStorage update
+    // Page change වෙන සෑම විටම sessionStorage update
     useEffect(() => {
       if (page !== "landing" && page !== "login") {
-        localStorage.setItem("currentPage", page);
+        sessionStorage.setItem("currentPage", page);
       }
     }, [page]);
 
@@ -183,7 +181,7 @@ export default function App() {
     fetch("/api/auth/signout", { method: "POST", credentials: "include" }).catch(() => {});
     setIsLoggedIn(false);
     setCurrentUser(null);
-    localStorage.removeItem("currentPage"); 
+    sessionStorage.removeItem("currentPage"); 
     setPage("landing");
   };
   const loginSuccess = async () => {
