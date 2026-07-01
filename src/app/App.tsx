@@ -6,6 +6,18 @@ import { toast } from "sonner";
 import { InteractiveBackground } from "./components/InteractiveBackground";
 import { DoorsPage, type DoorFeature } from "./components/DoorsPage";
 
+import Layout from "./pages/esport/Layout";
+import { type EsportPage } from "./pages/esport/Sidebar";
+import EsportHome from "./pages/esport/Home";
+import EsportDashboard from "./pages/esport/Dashboard";
+import EsportTournaments from "./pages/esport/Tournaments";
+import EsportTeams from "./pages/esport/Teams";
+import EsportPlayers from "./pages/esport/Players";
+import EsportMatches from "./pages/esport/Matches";
+import EsportBrackets from "./pages/esport/Brackets";
+import EsportLeaderboard from "./pages/esport/Leaderboard";
+import EsportProfile from "./pages/esport/Profile";
+
 import FootballHome from "./pages/football/FootballHome";
 import Leagues from "./pages/football/Leagues";
 import Clubs from "./pages/football/Clubs";
@@ -36,9 +48,11 @@ type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail
 // App.tsx top — Page type
 type Page = 
   | "landing" | "doors" | "login" | "reset-password"
-  | "esport" | "questboard"   
+  | EsportPage | "questboard"   
   | FootballPage
   | QuestboardPage;
+
+const isEsportPage = (p: Page): p is EsportPage => p.startsWith("esport-");
 
 const featureCopy: Record<DoorFeature, {
   eyebrow: string;
@@ -228,7 +242,7 @@ export default function App() {
                 if (feature === "football") {
                   setPage("football-home");
                 } else if (feature === "esport") {
-                  setPage("esport" as Page);
+                  setPage("esport-home");
                 } else if (feature === "questboard") {
                   setPage("questboard-home");
                 } else {
@@ -267,15 +281,23 @@ export default function App() {
           </Screen>
         )}
 
-        {page === "esport" && (
+        {isEsportPage(page) && (
           <Screen key={page}>
-            <FeaturePage
-              feature={page as DoorFeature}
-              onBack={() => setPage("doors")}
-              isLoggedIn={isLoggedIn}
-              onLogin={goLogin}
-              onLogout={logout}
-            />
+            <Layout
+              currentPage={page}
+              onNavigate={(p) => setPage(p)}
+              onExit={() => setPage("doors")}
+            >
+              {page === "esport-home" && <EsportHome />}
+              {page === "esport-dashboard" && <EsportDashboard />}
+              {page === "esport-tournaments" && <EsportTournaments />}
+              {page === "esport-teams" && <EsportTeams />}
+              {page === "esport-players" && <EsportPlayers />}
+              {page === "esport-matches" && <EsportMatches />}
+              {page === "esport-brackets" && <EsportBrackets />}
+              {page === "esport-leaderboard" && <EsportLeaderboard />}
+              {page === "esport-profile" && <EsportProfile />}
+            </Layout>
           </Screen>
         )}
 
