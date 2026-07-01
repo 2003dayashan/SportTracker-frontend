@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, CalendarDays, Shield, Trophy, Users, Zap } from "lucide-react";
+import { ArrowLeft, CalendarDays, Eye, EyeOff, Shield, Trophy, Users, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { InteractiveBackground } from "./components/InteractiveBackground";
@@ -614,6 +614,7 @@ function LoginPage({ onBack, onLoginSuccess, onLogout }: {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const isRegister = mode === "register";
   const isForgot = mode === "forgot";
@@ -630,6 +631,7 @@ function LoginPage({ onBack, onLoginSuccess, onLogout }: {
     setMode(next);
     setErrorMsg(null);
     setSuccessMsg(null);
+    setShowPassword(false);
     if (next === "forgot") setEmail("");
   };
 
@@ -776,7 +778,24 @@ function LoginPage({ onBack, onLoginSuccess, onLogout }: {
                     {!isForgot && (
                       <label className="block font-['Space_Grotesk'] text-sm font-bold uppercase tracking-[0.12em]">
                         <span>Password</span>
-                        <input type="password" required placeholder={isRegister ? "Minimum 6 characters" : "Enter your password"} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] px-4 py-3 font-normal normal-case tracking-normal outline-none placeholder:text-[#2b2b2b]/35 focus:border-[#2b2b2b] focus:shadow-[0_0_0_3px_rgba(43,43,43,0.14)]" />
+                        <div className="relative mt-2">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            placeholder={isRegister ? "Minimum 6 characters" : "Enter your password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] pl-4 pr-12 py-3 font-normal normal-case tracking-normal outline-none placeholder:text-[#2b2b2b]/35 focus:border-[#2b2b2b] focus:shadow-[0_0_0_3px_rgba(43,43,43,0.14)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#2b2b2b]/50 hover:text-[#2b2b2b] focus:outline-none transition-colors"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
                       </label>
                     )}
                   </div>
