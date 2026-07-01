@@ -1,164 +1,92 @@
-export interface User {
+export type User = {
   id: string;
   username: string;
-  email: string;
-  role: "USER" | "GUILD_MASTER" | "ADMIN";
-  xp?: number;
-  level?: number;
-  createdAt?: string;
-}
+  role: string;
+};
 
-export interface Category {
-  id: string;
-  name: string;
-  description: string;
-  icon?: string;
-  color?: string;
-}
+export type ServiceType = "ESPORT" | "SPORT";
 
-export interface Quest {
+export type Quest = {
   id: string;
   title: string;
   description: string;
-  status: "OPEN" | "CLAIMED" | "SUBMITTED" | "COMPLETED" | "REJECTED" | "EXPIRED";
-  difficulty: "EASY" | "MEDIUM" | "HARD" | "LEGENDARY";
-  rewardXp: number;
-  deadline: string;
-  categoryId: string;
-  createdBy: string;
-  claimedBy?: string | null;
-  imageUrl?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  notDeleted?: boolean;
-}
+  serviceType: ServiceType;
+  points: number;
+};
 
-export interface QuestSubmission {
+export type SubmissionStatus = "CLAIMED" | "SUBMITTED" | "APPROVED" | "REJECTED";
+
+export type QuestSubmission = {
   id: string;
-  questId: string;
   userId: string;
-  proofText: string;
-  proofFileUrl?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  submittedAt: string;
+  username: string;
+  questId: string;
+  questTitle: string;
+  points: number;
+  status: SubmissionStatus;
+  timestamp: string;
+};
+
+const API_BASE = "/api/quests";
+
+export async function fetchQuests(): Promise<Quest[]> {
+  const res = await fetch(API_BASE);
+  if (!res.ok) throw new Error("Failed to fetch quests");
+  return res.json();
 }
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    let errMsg = "API Request Failed";
-    try {
-      const errJson = JSON.parse(errorText);
-      errMsg = errJson.message || errMsg;
-    } catch {
-      errMsg = errorText || errMsg;
-    }
-    throw new Error(errMsg);
-  }
-  const text = await res.text();
-  if (!text) return {} as T;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text as unknown as T;
-  }
+export async function fetchQuestsByService(service: ServiceType): Promise<Quest[]> {
+  const res = await fetch(`${API_BASE}/service/${service}`);
+  if (!res.ok) throw new Error("Failed to fetch quests");
+  return res.json();
 }
 
-// User Profile
-export const fetchMyProfile = async (): Promise<User> => {
-  const res = await fetch(`/api/questboard/auth/me`, { credentials: "include" });
-  return handleResponse<User>(res);
-};
-
-// Quests
-export const fetchQuests = async (categoryId?: string, status?: string): Promise<{content: Quest[], last: boolean}> => {
-  const params = new URLSearchParams();
-  if (categoryId) params.append("categoryId", categoryId);
-  if (status) params.append("status", status);
-  params.append("size", "50");
-  
-  const res = await fetch(`/api/quests?${params.toString()}`);
-  return handleResponse(res);
-};
-
-export const fetchQuestById = async (id: string): Promise<Quest> => {
-  const res = await fetch(`/api/quests/${id}`);
-  return handleResponse(res);
-};
-
-export const createQuest = async (questData: Partial<Quest>): Promise<Quest> => {
-  const res = await fetch(`/api/quests`, {
+export async function createQuest(quest: Partial<Quest>): Promise<Quest> {
+  const res = await fetch(API_BASE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(questData)
+    body: JSON.stringify(quest),
   });
-  return handleResponse(res);
-};
+  if (!res.ok) throw new Error("Failed to create quest");
+  return res.json();
+}
 
-export const updateQuest = async (id: string, questData: Partial<Quest>): Promise<Quest> => {
-  const res = await fetch(`/api/quests/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(questData)
-  });
-  return handleResponse(res);
-};
+// --- User Progression ---
 
-export const deleteQuest = async (id: string): Promise<{deleted: boolean}> => {
-  const res = await fetch(`/api/quests/${id}`, {
-    method: "DELETE",
-    credentials: "include"
-  });
-  return handleResponse(res);
-};
+export async function claimQuest(questId: string): Promise<QuestSubmission> {
+  const res = await fetch(`${API_BASE}/${questId}/claim`, { method: "POST", credentials: "include" });
+  if (!res.ok) throw new Error("Failed to claim quest");
+  return res.json();
+}
 
-// Quest Actions
-export const claimQuest = async (id: string): Promise<Quest> => {
-  const res = await fetch(`/api/quests/${id}/claim`, { method: "POST", credentials: "include" });
-  return handleResponse(res);
-};
+export async function submitQuest(questId: string): Promise<QuestSubmission> {
+  const res = await fetch(`${API_BASE}/${questId}/submit`, { method: "POST", credentials: "include" });
+  if (!res.ok) throw new Error("Failed to submit quest");
+  return res.json();
+}
 
-export const submitQuest = async (id: string, formData: FormData): Promise<QuestSubmission> => {
-  const res = await fetch(`/api/quests/${id}/submit`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-  });
-  return handleResponse(res);
-};
+export async function fetchMyProgress(): Promise<{ points: number, submissions: QuestSubmission[] }> {
+  const res = await fetch(`${API_BASE}/my-progress`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch progress");
+  return res.json();
+}
 
-export const approveSubmission = async (submissionId: string, approved: boolean): Promise<QuestSubmission> => {
-  const res = await fetch(`/api/quests/submissions/${submissionId}/approve?approved=${approved}`, {
-    method: "POST",
-    credentials: "include"
-  });
-  return handleResponse(res);
-};
+export async function fetchLeaderboard(): Promise<{ userId: string, username: string, points: number }[]> {
+  const res = await fetch(`${API_BASE}/leaderboard`);
+  if (!res.ok) throw new Error("Failed to fetch leaderboard");
+  return res.json();
+}
 
-export const fetchPendingSubmissions = async (): Promise<QuestSubmission[]> => {
-  const res = await fetch(`/api/quests/submissions/pending`, { credentials: "include" });
-  return handleResponse(res);
-};
+// --- Admin ---
 
-// Categories
-export const fetchCategories = async (): Promise<Category[]> => {
-  const res = await fetch(`/api/categories`);
-  return handleResponse(res);
-};
+export async function fetchPendingSubmissions(): Promise<QuestSubmission[]> {
+  const res = await fetch(`${API_BASE}/submissions/pending`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch pending submissions");
+  return res.json();
+}
 
-export const createCategory = async (categoryData: Partial<Category>): Promise<Category> => {
-  const res = await fetch(`/api/categories`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(categoryData)
-  });
-  return handleResponse(res);
-};
-
-export const fetchLeaderboard = async (): Promise<User[]> => {
-  const res = await fetch(`/api/quests/leaderboard`);
-  return handleResponse(res);
-};
+export async function approveSubmission(submissionId: string): Promise<QuestSubmission> {
+  const res = await fetch(`${API_BASE}/submissions/${submissionId}/approve`, { method: "PUT", credentials: "include" });
+  if (!res.ok) throw new Error("Failed to approve submission");
+  return res.json();
+}

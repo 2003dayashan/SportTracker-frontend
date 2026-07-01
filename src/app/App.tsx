@@ -98,10 +98,15 @@ export default function App() {
     const normalizeRole = (role: string | undefined | null): string => {
       if (!role) return "USER";
       const r = role.toUpperCase().trim();
-      if (r === "ADMIN") return "ADMIN";
-      if (r === "GUILD_MASTER") return "GUILD_MASTER";
+      
+      if (r === "ROLE_ADMIN" || r === "ADMIN") return "ADMIN";
+      if (r === "ROLE_GUILD_MASTER" || r === "GUILD_MASTER") return "GUILD_MASTER";
+      if (r === "ROLE_USER" || r === "USER") return "USER";
+
       // Handle variations from manual DB edits
-      if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
+      if (r.includes("ADMIN")) return "ADMIN";
+      if (r.includes("GUILD") || r.includes("MASTER")) return "GUILD_MASTER";
+      
       return "USER";
     };
 
@@ -122,15 +127,6 @@ export default function App() {
             }
           }
 
-          // Try questboard auth
-          const qbRes = await fetch("/api/questboard/auth/me", { credentials: "include" });
-          if (qbRes.ok) {
-            const qbData = await qbRes.json();
-            if (qbData?.id) {
-              userFound = true;
-              userData = qbData; // Questboard data takes precedence for Questboard
-            }
-          }
 
           if (userFound && userData) {
             // Normalize the role to handle corrupted DB values
@@ -178,11 +174,7 @@ export default function App() {
         const data = await mainRes.json();
         if (data?.id) userData = data;
       }
-      const qbRes = await fetch("/api/questboard/auth/me", { credentials: "include" });
-      if (qbRes.ok) {
-        const qbData = await qbRes.json();
-        if (qbData?.id) userData = qbData;
-      }
+
       if (userData) {
         userData.role = normalizeRole(userData.role);
         setCurrentUser(userData);
