@@ -81,7 +81,10 @@ export default function App() {
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
-  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "GUILD_MASTER";
+  const isAdmin = isLoggedIn && (
+  currentUser?.role === "ADMIN" ||
+  currentUser?.role === "GUILD_MASTER"
+);
 
   // Check URL for reset token on page load
   useEffect(() => {
@@ -100,8 +103,15 @@ export default function App() {
       const r = role.toUpperCase().trim();
       if (r === "ADMIN") return "ADMIN";
       if (r === "GUILD_MASTER") return "GUILD_MASTER";
-      // Handle variations from manual DB edits
       if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
+      return "USER";
+    };
+
+    // Backend roles array → single role string
+    const normalizeRoleFromArray = (roles: string[] | undefined | null): string => {
+      if (!roles || roles.length === 0) return "USER";
+      const combined = roles.join(",").toUpperCase();
+      if (combined.includes("ADMIN") || combined.includes("GUILD_MASTER") || combined.includes("MASTER")) return "ADMIN";
       return "USER";
     };
 
@@ -132,20 +142,20 @@ export default function App() {
             }
           }
 
-          if (userFound && userData) {
-            // Normalize the role to handle corrupted DB values
-            userData.role = normalizeRole(userData.role);
-            setIsLoggedIn(true);
-            setCurrentUser(userData);
+      if (userFound && userData) {
+        // ✅ FIX — roles array handle + role string handle
+        const roleSource = userData.roles || (userData.role ? [userData.role] : []);
+        userData.role = normalizeRoleFromArray(roleSource);
+        setIsLoggedIn(true);
+        setCurrentUser(userData);
 
-            // Current page restore
-            const savedPage = localStorage.getItem("currentPage") as Page | null;
-            if (savedPage && savedPage !== "landing" && savedPage !== "login") {
-              setPage(savedPage);
-            } else {
-              setPage("doors");
-            }
-          }
+        const savedPage = localStorage.getItem("currentPage") as Page | null;
+        if (savedPage && savedPage !== "landing" && savedPage !== "login") {
+          setPage(savedPage);
+        } else {
+          setPage("doors");
+        }
+      }
         } catch (e) {
           console.error("Session restore failed", e);
         }
@@ -183,10 +193,12 @@ export default function App() {
         const qbData = await qbRes.json();
         if (qbData?.id) userData = qbData;
       }
-      if (userData) {
-        userData.role = normalizeRole(userData.role);
-        setCurrentUser(userData);
-      }
+    if (userData) {
+      // ✅ FIX
+      const roleSource = userData.roles || (userData.role ? [userData.role] : []);
+      userData.role = normalizeRoleFromArray(roleSource);
+      setCurrentUser(userData);
+    }
     } catch (e) {
       console.error("Login session fetch failed", e);
     }
@@ -351,16 +363,16 @@ export default function App() {
             <Leagues
               isAdmin={isAdmin}
               onBack={() => setPage("football-home")}
-              onViewStandings={(id) => {
+              onViewStandings={(id, name) => {          
                 setSelectedLeagueId(id);
-                setSelectedLeagueName("Selected League");
+                setSelectedLeagueName(name);           
                 setPage("football-standings");
               }}
               onViewFixtures={(id) => {
                 setSelectedLeagueId(id);
                 setPage("football-fixtures");
               }}
-            />
+            />      
           </Screen>
         )}
         {page === "football-clubs" && (
