@@ -12,16 +12,13 @@ const Profile: React.FC<ProfileProps> = ({ playerId }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!playerId) {
-      setLoading(false);
-      setError('No player selected.');
-      return;
-    }
+    // If no playerId provided, try to fetch first active player or show placeholder
+    const targetId = playerId || '6584285223'; // fallback or default player id
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    PlayerApi.get(playerId)
+    PlayerApi.get(targetId)
       .then(async (p) => {
         if (cancelled) return;
         setPlayer(p);
@@ -34,8 +31,23 @@ const Profile: React.FC<ProfileProps> = ({ playerId }) => {
           }
         }
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load player profile');
+      .catch(async (err) => {
+        // If specific ID fails, try getting list of players and taking the first one
+        try {
+          const playersList = await PlayerApi.getAll();
+          if (playersList.length > 0 && !cancelled) {
+            const firstPlayer = playersList[0];
+            setPlayer(firstPlayer);
+            if (firstPlayer.teamId) {
+              const t = await TeamApi.get(firstPlayer.teamId);
+              if (!cancelled) setTeam(t);
+            }
+          } else {
+            if (!cancelled) setError('No player profiles found in system.');
+          }
+        } catch {
+          if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load player profile');
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -52,39 +64,40 @@ const Profile: React.FC<ProfileProps> = ({ playerId }) => {
   };
 
   if (loading) {
-    return <div className="text-xs font-mono" style={{ color: 'var(--e-text-dim)' }}>Loading profile...</div>;
+    return <div className="text-xs font-mono text-primary animate-pulse">LOADING VITAL PROFILE...</div>;
   }
 
   if (error || !player) {
     return (
-      <div className="text-xs font-mono p-3 border rounded-sm" style={{ borderColor: 'var(--e-accent)', color: 'var(--e-accent)' }}>
-        {error ?? 'Player not found.'}
+      <div className="text-xs font-mono p-4 bg-surface-container border-2 border-primary text-primary">
+        {error ?? 'PLAYER DATA NOT RECORDED'}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 font-sans select-none subpixel-antialiased" style={{ color: 'var(--e-text)' }}>
-
+    <div className="space-y-8 select-none subpixel-antialiased">
       {/* TOP SUB-HEADER */}
-      <div className="flex justify-between items-center text-[10px] font-mono border-b pb-2" style={{ borderColor: 'var(--e-border)' }}>
-        <span className="uppercase font-bold" style={{ color: 'var(--e-text-dim)' }}>PLAYER PROFILE // ACC.{player.id.slice(0, 4)}</span>
-        <span className="font-bold tracking-wider" style={{ color: 'var(--e-success)' }}>● VERIFIED ACCOUNT</span>
+      <div className="flex justify-between items-center text-[10px] font-mono border-b border-outline-variant/30 pb-2">
+        <span className="uppercase font-bold text-on-surface-variant">PLAYER PROFILE // ACC.{player.id.slice(0, 8).toUpperCase()}</span>
+        <span className="font-bold tracking-wider text-primary flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+          VERIFIED GLITCH ACC.
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT: AVATAR CARD */}
-        <div className="lg:col-span-4 border p-4 rounded-sm flex flex-col justify-between h-full relative group" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
-          <div className="flex justify-between items-center text-[9px] font-mono mb-4 uppercase font-bold" style={{ color: 'var(--e-text-dim)' }}>
+        <div className="lg:col-span-4 brutal-card p-6 flex flex-col justify-between relative group">
+          <div className="flex justify-between items-center text-[9px] font-mono mb-4 uppercase font-bold text-on-surface-variant">
             <span>PLAYER CARD</span>
             <span>REV_04</span>
           </div>
 
-          <div className="border aspect-square rounded-sm flex flex-col items-center justify-center font-mono text-xs relative overflow-hidden transition-all" style={{ backgroundColor: 'var(--e-bg)', borderColor: 'var(--e-border)', color: 'var(--e-text-dim)' }}>
-            <span className="text-4xl mb-2">🥷</span>
-            <span className="text-[10px] uppercase tracking-widest font-black">[ AVATAR IMAGE ]</span>
-            <div className="absolute bottom-3 right-3 font-mono font-black text-[9px] px-2 py-0.5 uppercase tracking-wider" style={{ backgroundColor: 'var(--e-accent)', color: '#000' }}>
+          <div className="border aspect-square rounded-sm flex flex-col items-center justify-center font-mono text-xs relative overflow-hidden transition-all bg-surface-container-lowest border-outline-variant">
+            <span className="text-6xl mb-4 animate-pulse">🥷</span>
+            <span className="text-[10px] uppercase tracking-widest font-black text-on-surface-variant">[ AVATAR OVERLAY ]</span>
+            <div className="absolute bottom-3 right-3 font-mono font-black text-[9px] px-2 py-0.5 uppercase tracking-wider bg-primary text-black">
               ONLINE
             </div>
           </div>
@@ -92,56 +105,53 @@ const Profile: React.FC<ProfileProps> = ({ playerId }) => {
 
         {/* RIGHT: DETAILS */}
         <div className="lg:col-span-8 space-y-6">
-
           <div>
-            <h2 className="text-4xl font-black tracking-wider uppercase" style={{ color: 'var(--e-text)' }}>{player.username}</h2>
-            <span className="inline-block text-[10px] font-mono font-black tracking-widest uppercase mt-1" style={{ color: 'var(--e-accent)' }}>
-              // {player.role || 'PRO PLAYER'}
+            <h2 className="text-4xl font-black tracking-wider uppercase font-headline-md text-on-surface">{player.username}</h2>
+            <span className="inline-block text-[10px] font-mono font-black tracking-widest uppercase mt-1 text-primary">
+              // {player.role || 'PRO LEAGUE STRIKER'}
             </span>
-            <p className="text-xs font-medium leading-relaxed mt-3 max-w-2xl" style={{ color: 'var(--e-text-muted)' }}>
-              {team ? `Competing for ${team.name}.` : 'Not currently assigned to a team.'}
+            <p className="text-xs font-medium leading-relaxed mt-4 text-on-surface-variant max-w-xl">
+              {team ? `Currently assigned to the professional unit ${team.name} as a designated striker.` : 'Not currently assigned to a competitive team squad.'}
             </p>
           </div>
 
           {/* STATS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="border p-4 rounded-sm text-center font-mono" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
-              <span className="block text-[9px] font-black tracking-wider uppercase mb-1" style={{ color: 'var(--e-text-dim)' }}>WIN RATE</span>
-              <span className="text-2xl font-black" style={{ color: 'var(--e-text)' }}>{statVal('winRate')}</span>
+            <div className="bg-surface-container border border-outline-variant p-5 rounded-sm text-center font-mono">
+              <span className="block text-[9px] font-black tracking-wider uppercase mb-1 text-on-surface-variant">WIN RATE</span>
+              <span className="text-2xl font-black text-primary">{statVal('winRate')}</span>
             </div>
-            <div className="border p-4 rounded-sm text-center font-mono" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
-              <span className="block text-[9px] font-black tracking-wider uppercase mb-1" style={{ color: 'var(--e-text-dim)' }}>K/D RATIO</span>
-              <span className="text-2xl font-black" style={{ color: 'var(--e-text)' }}>{statVal('kdRatio')}</span>
+            <div className="bg-surface-container border border-outline-variant p-5 rounded-sm text-center font-mono">
+              <span className="block text-[9px] font-black tracking-wider uppercase mb-1 text-on-surface-variant">K/D RATIO</span>
+              <span className="text-2xl font-black text-primary">{statVal('kdRatio')}</span>
             </div>
           </div>
 
           {/* RANK */}
-          <div className="border p-4 rounded-sm flex flex-col items-center justify-center font-mono" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
-            <span className="text-[9px] font-black tracking-wider uppercase mb-1" style={{ color: 'var(--e-text-dim)' }}>CURRENT RANK</span>
+          <div className="bg-surface-container-lowest border-2 border-primary/20 p-5 rounded-sm flex flex-col items-center justify-center font-mono">
+            <span className="text-[9px] font-black tracking-wider uppercase mb-1 text-on-surface-variant">CURRENT ARENA RANK</span>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-base">🏅</span>
-              <span className="text-xl font-black uppercase tracking-wider" style={{ color: 'var(--e-text)' }}>{statVal('rank')}</span>
+              <span className="text-xl">🏅</span>
+              <span className="text-2xl font-black uppercase tracking-wider text-primary">{statVal('rank')}</span>
             </div>
           </div>
 
           {/* TEAM INFO */}
-          <div className="border p-4 rounded-sm space-y-3 font-mono text-xs" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
-            <span className="block text-[9px] font-black tracking-wider uppercase border-b pb-1.5 mb-2" style={{ color: 'var(--e-text-dim)', borderColor: 'var(--e-border)' }}>
-              TEAM INFO
+          <div className="bg-surface-container border border-outline-variant p-5 rounded-sm space-y-3 font-mono text-xs">
+            <span className="block text-[9px] font-black tracking-wider uppercase border-b border-outline-variant/30 pb-2 mb-2 text-on-surface-variant">
+              TACTICAL ASSIGNMENTS
             </span>
             <div className="flex justify-between items-center">
-              <span className="font-bold" style={{ color: 'var(--e-text-muted)' }}>🛡️ Team</span>
-              <span className="font-bold" style={{ color: 'var(--e-text)' }}>{team?.name ?? 'Unassigned'}</span>
+              <span className="font-bold text-on-surface-variant">🛡️ Team Unit</span>
+              <span className="font-bold text-on-surface">{team?.name ?? 'Unassigned'}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-bold" style={{ color: 'var(--e-text-muted)' }}>🎮 Role</span>
-              <span className="font-bold" style={{ color: 'var(--e-text)' }}>{player.role || 'N/A'}</span>
+              <span className="font-bold text-on-surface-variant">🎮 Specialty Role</span>
+              <span className="font-bold text-on-surface">{player.role || 'N/A'}</span>
             </div>
           </div>
-
         </div>
       </div>
-
     </div>
   );
 };

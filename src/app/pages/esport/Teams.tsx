@@ -1,9 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { TeamApi, TournamentApi, type Team, type TeamRequest, type Tournament } from '../../../lib/esportApi';
 
 const inputStyle = { backgroundColor: 'var(--e-bg)', borderColor: 'var(--e-border)', color: 'var(--e-text)' };
 
-const Teams: React.FC = () => {
+const gridVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+};
+
+interface TeamsProps {
+  isAdmin?: boolean;
+}
+
+const Teams: React.FC<TeamsProps> = ({ isAdmin = false }) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,36 +95,49 @@ const Teams: React.FC = () => {
       )}
 
       {/* CREATE FORM */}
-      <div className="border p-6 rounded-sm relative overflow-hidden" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
-        <div className="absolute top-0 left-0 w-[3px] h-full" style={{ backgroundColor: 'var(--e-accent)' }}></div>
-        <h4 className="text-[11px] font-mono font-black tracking-widest uppercase mb-6" style={{ color: 'var(--e-accent)' }}>// 01. REGISTER NEW TEAM</h4>
+      {isAdmin && (
+        <div className="border p-6 rounded-sm relative overflow-hidden" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
+          <div className="absolute top-0 left-0 w-[3px] h-full" style={{ backgroundColor: 'var(--e-accent)' }}></div>
+          <h4 className="text-[11px] font-mono font-black tracking-widest uppercase mb-6" style={{ color: 'var(--e-accent)' }}>// 01. REGISTER NEW TEAM</h4>
 
-        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <input
-            type="text" placeholder="TEAM NAME" value={name} onChange={(e) => setName(e.target.value)}
-            className="border p-3 text-xs rounded-sm focus:outline-none uppercase font-bold tracking-wider" style={inputStyle}
-          />
-          <input
-            type="text" placeholder="LOGO URL (OPTIONAL)" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)}
-            className="border p-3 text-xs rounded-sm focus:outline-none font-bold tracking-wider" style={inputStyle}
-          />
-          <select value={tournamentId} onChange={(e) => setTournamentId(e.target.value)} className="border p-3 text-xs rounded-sm focus:outline-none font-bold uppercase tracking-wider" style={inputStyle}>
-            <option value="">NO TOURNAMENT</option>
-            {tournaments.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <button type="submit" className="font-black text-xs py-3 tracking-widest uppercase transition-all rounded-sm" style={{ backgroundColor: 'var(--e-accent)', color: '#000' }}>
-            CREATE TEAM
-          </button>
-        </form>
-      </div>
+          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input
+              type="text" placeholder="TEAM NAME" value={name} onChange={(e) => setName(e.target.value)}
+              className="border p-3 text-xs rounded-sm focus:outline-none uppercase font-bold tracking-wider" style={inputStyle}
+            />
+            <input
+              type="text" placeholder="LOGO URL (OPTIONAL)" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)}
+              className="border p-3 text-xs rounded-sm focus:outline-none font-bold tracking-wider" style={inputStyle}
+            />
+            <select value={tournamentId} onChange={(e) => setTournamentId(e.target.value)} className="border p-3 text-xs rounded-sm focus:outline-none font-bold uppercase tracking-wider" style={inputStyle}>
+              <option value="">NO TOURNAMENT</option>
+              {tournaments.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <button type="submit" className="font-black text-xs py-3 tracking-widest uppercase transition-all rounded-sm" style={{ backgroundColor: 'var(--e-accent)', color: '#000' }}>
+              CREATE TEAM
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* TEAMS GRID */}
       {loading ? (
         <div className="text-xs font-mono" style={{ color: 'var(--e-text-dim)' }}>Loading teams...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          variants={gridVariants}
+          initial="hidden"
+          animate="show"
+        >
           {teams.map((team) => (
-            <div key={team.id} className="border p-5 rounded-sm group transition-all" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
+            <motion.div
+              key={team.id}
+              variants={cardVariants}
+              whileHover={{ y: -4, borderColor: 'var(--e-accent)' }}
+              className="border p-5 rounded-sm group transition-colors"
+              style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}
+            >
               <div className="flex justify-between items-start mb-4">
                 <h4 className="text-lg font-black uppercase tracking-wide" style={{ color: 'var(--e-text)' }}>{team.name}</h4>
                 <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-sm" style={{ color: 'var(--e-success)', backgroundColor: 'rgba(34,197,94,0.1)' }}>● ACTIVE</span>
@@ -130,14 +158,16 @@ const Teams: React.FC = () => {
                 <button className="flex-1 border py-2 text-[10px] font-black uppercase transition-all rounded-sm" style={{ borderColor: 'var(--e-border)', color: 'var(--e-text)' }}>
                   VIEW ROSTER
                 </button>
-                <button onClick={() => handleDelete(team.id)} className="px-3 border text-[10px] uppercase font-black transition-all rounded-sm" style={{ borderColor: 'var(--e-border)', color: 'var(--e-accent)' }}>
-                  X
-                </button>
+                {isAdmin && (
+                  <button onClick={() => handleDelete(team.id)} className="px-3 border text-[10px] uppercase font-black transition-all rounded-sm" style={{ borderColor: 'var(--e-border)', color: 'var(--e-accent)' }}>
+                    X
+                  </button>
+                )}
               </div>
-            </div>
+            </motion.div>
           ))}
           {teams.length === 0 && <div className="text-xs font-mono col-span-full text-center py-8" style={{ color: 'var(--e-text-dim)' }}>No teams registered yet.</div>}
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -17,6 +17,7 @@ import EsportMatches from "./pages/esport/Matches";
 import EsportBrackets from "./pages/esport/Brackets";
 import EsportLeaderboard from "./pages/esport/Leaderboard";
 import EsportProfile from "./pages/esport/Profile";
+import EsportSearch from "./pages/esport/Search";
 
 import FootballHome from "./pages/football/FootballHome";
 import Leagues from "./pages/football/Leagues";
@@ -290,13 +291,14 @@ export default function App() {
             >
               {page === "esport-home" && <EsportHome />}
               {page === "esport-dashboard" && <EsportDashboard />}
-              {page === "esport-tournaments" && <EsportTournaments />}
-              {page === "esport-teams" && <EsportTeams />}
-              {page === "esport-players" && <EsportPlayers />}
+              {page === "esport-tournaments" && <EsportTournaments isAdmin={isAdmin} />}
+              {page === "esport-teams" && <EsportTeams isAdmin={isAdmin} />}
+              {page === "esport-players" && <EsportPlayers isAdmin={isAdmin} />}
               {page === "esport-matches" && <EsportMatches />}
               {page === "esport-brackets" && <EsportBrackets />}
               {page === "esport-leaderboard" && <EsportLeaderboard />}
               {page === "esport-profile" && <EsportProfile />}
+              {page === "esport-search" && <EsportSearch />}
             </Layout>
           </Screen>
         )}

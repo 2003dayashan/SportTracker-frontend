@@ -11,7 +11,7 @@
 // `.authenticated()` / `.hasRole("ADMIN")`. Make sure you've already
 // signed in via /api/auth/signin before calling create/update/delete.
 
-const BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8080";
+const BASE_URL = (import.meta as any).env.VITE_API_URL || "";
 
 // ---------- Types (mirrors the Java models/DTOs) ----------
 

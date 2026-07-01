@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
 export interface Fixture {
   id: string;
+  leagueId: string;
+  homeClubId: string;
+  awayClubId: string;
   homeClubName: string;
   awayClubName: string;
   homeScore?: number;
@@ -11,7 +14,17 @@ export interface Fixture {
   kickoffAt: string;
   leagueName: string;
   matchday: number;
-  leagueId?: string; // Included to support pre-filtering
+}
+
+export interface Club {
+  id: string;
+  name: string;
+  leagueId: string;
+}
+
+export interface League {
+  id: string;
+  name: string;
 }
 
 export interface FixturesProps {
@@ -25,30 +38,80 @@ type TabStatus = "ALL" | "SCHEDULED" | "LIVE" | "FINISHED";
 
 export default function Fixtures({
   leagueId,
-  isAdmin, // Passed in but unused in this specific view per requirements, ready for future admin actions
+  isAdmin,
   onBack,
   onFixtureClick,
 }: FixturesProps) {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabStatus>("ALL");
 
+  // Create Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createLeagueId, setCreateLeagueId] = useState(leagueId || "");
+  const [createHomeClubId, setCreateHomeClubId] = useState("");
+  const [createAwayClubId, setCreateAwayClubId] = useState("");
+  const [createStatus, setCreateStatus] = useState<"SCHEDULED" | "LIVE" | "FINISHED">("SCHEDULED");
+  const [createKickoffAt, setCreateKickoffAt] = useState("");
+  const [createMatchday, setCreateMatchday] = useState(1);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Edit Modal State
+  const [editFixture, setEditFixture] = useState<Fixture | null>(null);
+  const [editLeagueId, setEditLeagueId] = useState("");
+  const [editHomeClubId, setEditHomeClubId] = useState("");
+  const [editAwayClubId, setEditAwayClubId] = useState("");
+  const [editStatus, setEditStatus] = useState<"SCHEDULED" | "LIVE" | "FINISHED">("SCHEDULED");
+  const [editKickoffAt, setEditKickoffAt] = useState("");
+  const [editMatchday, setEditMatchday] = useState(1);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Toast
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const fetchFixtures = async () => {
     try {
-      // If the API supports query params, apply it. Otherwise, we filter client-side.
-      const url = leagueId
-        ? `/api/football/fixtures?leagueId=${leagueId}`
-        : "/api/football/fixtures";
+      const [fixturesRes, clubsRes, leaguesRes] = await Promise.all([
+        fetch("/api/football/fixtures"),
+        fetch("/api/football/clubs"),
+        fetch("/api/football/leagues"),
+      ]);
 
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to load fixtures.");
-      const data = await response.json();
-      
-      // Client-side fallback filter if API doesn't filter by leagueId
-      const filteredData = leagueId 
-        ? data.filter((f: Fixture) => f.leagueId === leagueId)
-        : data;
+      if (!fixturesRes.ok || !clubsRes.ok || !leaguesRes.ok) {
+        throw new Error("Failed to load data.");
+      }
+
+      const fixturesData = await fixturesRes.json();
+      const clubsData = await clubsRes.json();
+      const leaguesData = await leaguesRes.json();
+
+      setClubs(clubsData);
+      setLeagues(leaguesData);
+
+      const mappedFixtures = fixturesData.map((f: any) => {
+        const homeClub = clubsData.find((c: Club) => c.id === f.homeClubId);
+        const awayClub = clubsData.find((c: Club) => c.id === f.awayClubId);
+        const league = leaguesData.find((l: League) => l.id === f.leagueId);
+
+        return {
+          ...f,
+          homeClubName: homeClub ? homeClub.name : "Unknown",
+          awayClubName: awayClub ? awayClub.name : "Unknown",
+          leagueName: league ? league.name : "Unknown",
+        };
+      });
+
+      // Filter client side
+      const filteredData = leagueId
+        ? mappedFixtures.filter((f: Fixture) => f.leagueId === leagueId)
+        : mappedFixtures;
 
       setFixtures(filteredData);
       setError(null);
@@ -70,17 +133,98 @@ export default function Fixtures({
     return () => clearInterval(intervalId);
   }, [leagueId]);
 
+  const handleCreateFixture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createLeagueId) { showToast("Please select a league.", "error"); return; }
+    if (!createHomeClubId) { showToast("Please select a home club.", "error"); return; }
+    if (!createAwayClubId) { showToast("Please select an away club.", "error"); return; }
+    if (createHomeClubId === createAwayClubId) { showToast("Home and Away clubs must be different.", "error"); return; }
+
+    setIsCreating(true);
+    try {
+      const res = await fetch("/api/football/fixtures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          leagueId: createLeagueId,
+          homeClubId: createHomeClubId,
+          awayClubId: createAwayClubId,
+          status: createStatus,
+          kickoffAt: createKickoffAt ? `${createKickoffAt}:00` : null,
+          matchday: createMatchday,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create fixture");
+
+      setCreateHomeClubId("");
+      setCreateAwayClubId("");
+      setCreateStatus("SCHEDULED");
+      setCreateKickoffAt("");
+      setCreateMatchday(1);
+      setIsCreateOpen(false);
+      fetchFixtures();
+      showToast("Fixture created successfully!");
+    } catch {
+      showToast("Error creating fixture.", "error");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleEditFixture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFixture) return;
+    if (!editLeagueId) { showToast("Please select a league.", "error"); return; }
+    if (!editHomeClubId) { showToast("Please select a home club.", "error"); return; }
+    if (!editAwayClubId) { showToast("Please select an away club.", "error"); return; }
+    if (editHomeClubId === editAwayClubId) { showToast("Home and Away clubs must be different.", "error"); return; }
+
+    setIsEditing(true);
+    try {
+      const res = await fetch(`/api/football/fixtures/${editFixture.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          leagueId: editLeagueId,
+          homeClubId: editHomeClubId,
+          awayClubId: editAwayClubId,
+          status: editStatus,
+          kickoffAt: editKickoffAt ? `${editKickoffAt}:00` : null,
+          matchday: editMatchday,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update fixture");
+
+      setEditFixture(null);
+      fetchFixtures();
+      showToast("Fixture updated successfully!");
+    } catch {
+      showToast("Error updating fixture.", "error");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const openEdit = (fixture: Fixture) => {
+    setEditFixture(fixture);
+    setEditLeagueId(fixture.leagueId);
+    setEditHomeClubId(fixture.homeClubId);
+    setEditAwayClubId(fixture.awayClubId);
+    setEditStatus(fixture.status);
+    setEditKickoffAt(fixture.kickoffAt ? fixture.kickoffAt.slice(0, 16) : "");
+    setEditMatchday(fixture.matchday);
+  };
+
   const filteredFixtures = fixtures.filter((f) =>
     activeTab === "ALL" ? true : f.status === activeTab
   );
 
   const liveFixtures = filteredFixtures.filter((f) => f.status === "LIVE");
   const otherFixtures = filteredFixtures.filter((f) => f.status !== "LIVE");
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
 
   const tabs: TabStatus[] = ["ALL", "SCHEDULED", "LIVE", "FINISHED"];
 
@@ -97,7 +241,7 @@ export default function Fixtures({
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-8">
         {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-6">
             <button
               onClick={onBack}
@@ -117,7 +261,35 @@ export default function Fixtures({
               </span>
             </div>
           </div>
+
+          <div className="w-12 md:w-auto">
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setCreateLeagueId(leagueId || "");
+                  setIsCreateOpen(true);
+                }}
+                className="hidden md:block rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b] text-[#f3eee1] px-6 py-2.5 text-sm font-bold tracking-widest uppercase hover:bg-transparent hover:text-[#2b2b2b] transition-colors"
+              >
+                + Create Fixture
+              </button>
+            )}
+          </div>
         </header>
+
+        {isAdmin && (
+          <div className="md:hidden mb-6">
+            <button
+              onClick={() => {
+                setCreateLeagueId(leagueId || "");
+                setIsCreateOpen(true);
+              }}
+              className="w-full rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b] text-[#f3eee1] px-6 py-3 text-sm font-bold tracking-widest uppercase hover:bg-transparent hover:text-[#2b2b2b] transition-colors"
+            >
+              + Create Fixture
+            </button>
+          </div>
+        )}
 
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-3 mb-10">
@@ -179,7 +351,14 @@ export default function Fixtures({
                 <h2 className="font-['Caveat'] text-2xl mb-4 ml-2">🟢 LIVE NOW</h2>
                 <div className="flex flex-col gap-4">
                   {liveFixtures.map((fixture, index) => (
-                    <FixtureRow key={fixture.id} fixture={fixture} index={index} onClick={() => onFixtureClick(fixture.id)} />
+                    <FixtureRow
+                      key={fixture.id}
+                      fixture={fixture}
+                      index={index}
+                      isAdmin={isAdmin}
+                      onClick={() => onFixtureClick(fixture.id)}
+                      onEdit={openEdit}
+                    />
                   ))}
                 </div>
               </div>
@@ -191,7 +370,14 @@ export default function Fixtures({
                 {liveFixtures.length > 0 && <hr className="border-t-2 border-[#2b2b2b] border-dashed opacity-20 mb-8" />}
                 <div className="flex flex-col gap-4">
                   {otherFixtures.map((fixture, index) => (
-                    <FixtureRow key={fixture.id} fixture={fixture} index={index + liveFixtures.length} onClick={() => onFixtureClick(fixture.id)} />
+                    <FixtureRow
+                      key={fixture.id}
+                      fixture={fixture}
+                      index={index + liveFixtures.length}
+                      isAdmin={isAdmin}
+                      onClick={() => onFixtureClick(fixture.id)}
+                      onEdit={openEdit}
+                    />
                   ))}
                 </div>
               </div>
@@ -199,21 +385,332 @@ export default function Fixtures({
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-6 right-6 z-50 px-6 py-3 rounded-xl border-2 border-[#2b2b2b] font-bold text-sm tracking-wide uppercase shadow-[4px_4px_0_rgba(43,43,43,1)] ${
+              toast.type === "success" ? "bg-[#e2f0d9] text-[#2b2b2b]" : "bg-[#f8cbad] text-[#2b2b2b]"
+            }`}
+          >
+            {toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Modal */}
+      <AnimatePresence>
+        {isCreateOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2b2b2b]/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCreateOpen(false)}
+              className="absolute inset-0"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-10 w-full max-w-lg bg-[#f7f0df] border-2 border-[#2b2b2b] rounded-[2.5rem] shadow-[8px_8px_0_rgba(43,43,43,1)] p-8 max-h-[90vh] overflow-y-auto"
+            >
+              <h2 className="font-['Bebas_Neue'] text-4xl tracking-wide mb-6 text-center">Create Fixture</h2>
+              <form onSubmit={handleCreateFixture} className="flex flex-col gap-4">
+                
+                {/* League Selection */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">League</label>
+                  <select
+                    required
+                    value={createLeagueId}
+                    onChange={(e) => {
+                      setCreateLeagueId(e.target.value);
+                      setCreateHomeClubId("");
+                      setCreateAwayClubId("");
+                    }}
+                    className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                  >
+                    <option value="" disabled>Select League...</option>
+                    {leagues.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Clubs Selection (Filtered by League) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Home Club</label>
+                    <select
+                      required
+                      disabled={!createLeagueId}
+                      value={createHomeClubId}
+                      onChange={(e) => setCreateHomeClubId(e.target.value)}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select Home...</option>
+                      {clubs
+                        .filter((c) => c.leagueId === createLeagueId)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Away Club</label>
+                    <select
+                      required
+                      disabled={!createLeagueId}
+                      value={createAwayClubId}
+                      onChange={(e) => setCreateAwayClubId(e.target.value)}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select Away...</option>
+                      {clubs
+                        .filter((c) => c.leagueId === createLeagueId && c.id !== createHomeClubId)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Status & Matchday */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Status</label>
+                    <select
+                      required
+                      value={createStatus}
+                      onChange={(e) => setCreateStatus(e.target.value as any)}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                    >
+                      <option value="SCHEDULED">Scheduled</option>
+                      <option value="LIVE">Live</option>
+                      <option value="FINISHED">Finished</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Matchday</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={createMatchday}
+                      onChange={(e) => setCreateMatchday(Number(e.target.value))}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Kickoff At */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Kickoff Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={createKickoffAt}
+                    onChange={(e) => setCreateKickoffAt(e.target.value)}
+                    className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                  />
+                </div>
+
+                <div className="flex gap-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="flex-1 rounded-full border-2 border-[#2b2b2b] py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#2b2b2b] hover:text-[#f3eee1] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="flex-1 rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b] text-[#f3eee1] py-3 text-sm font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-transparent hover:text-[#2b2b2b] transition-colors"
+                  >
+                    {isCreating ? "Creating..." : "Create"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editFixture && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2b2b2b]/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditFixture(null)}
+              className="absolute inset-0"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-10 w-full max-w-lg bg-[#f7f0df] border-2 border-[#2b2b2b] rounded-[2.5rem] shadow-[8px_8px_0_rgba(43,43,43,1)] p-8 max-h-[90vh] overflow-y-auto"
+            >
+              <h2 className="font-['Bebas_Neue'] text-4xl tracking-wide mb-6 text-center">Edit Fixture</h2>
+              <form onSubmit={handleEditFixture} className="flex flex-col gap-4">
+                
+                {/* League Selection */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">League</label>
+                  <select
+                    required
+                    value={editLeagueId}
+                    onChange={(e) => {
+                      setEditLeagueId(e.target.value);
+                      setEditHomeClubId("");
+                      setEditAwayClubId("");
+                    }}
+                    className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                  >
+                    <option value="" disabled>Select League...</option>
+                    {leagues.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Clubs Selection (Filtered by League) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Home Club</label>
+                    <select
+                      required
+                      disabled={!editLeagueId}
+                      value={editHomeClubId}
+                      onChange={(e) => setEditHomeClubId(e.target.value)}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select Home...</option>
+                      {clubs
+                        .filter((c) => c.leagueId === editLeagueId)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Away Club</label>
+                    <select
+                      required
+                      disabled={!editLeagueId}
+                      value={editAwayClubId}
+                      onChange={(e) => setEditAwayClubId(e.target.value)}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select Away...</option>
+                      {clubs
+                        .filter((c) => c.leagueId === editLeagueId && c.id !== editHomeClubId)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Status & Matchday */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Status</label>
+                    <select
+                      required
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value as any)}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                    >
+                      <option value="SCHEDULED">Scheduled</option>
+                      <option value="LIVE">Live</option>
+                      <option value="FINISHED">Finished</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Matchday</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={editMatchday}
+                      onChange={(e) => setEditMatchday(Number(e.target.value))}
+                      className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Kickoff At */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest mb-2 ml-2">Kickoff Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={editKickoffAt}
+                    onChange={(e) => setEditKickoffAt(e.target.value)}
+                    className="w-full rounded-full border-2 border-[#2b2b2b] bg-transparent px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#d9b45f] font-bold"
+                  />
+                </div>
+
+                <div className="flex gap-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setEditFixture(null)}
+                    className="flex-1 rounded-full border-2 border-[#2b2b2b] py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#2b2b2b] hover:text-[#f3eee1] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isEditing}
+                    className="flex-1 rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b] text-[#f3eee1] py-3 text-sm font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-transparent hover:text-[#2b2b2b] transition-colors"
+                  >
+                    {isEditing ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Sub-component for the individual fixture row
-function FixtureRow({ fixture, index, onClick }: { fixture: Fixture; index: number; onClick: () => void }) {
+function FixtureRow({
+  fixture,
+  index,
+  isAdmin,
+  onClick,
+  onEdit,
+}: {
+  fixture: Fixture;
+  index: number;
+  isAdmin: boolean;
+  onClick: () => void;
+  onEdit: (fixture: Fixture) => void;
+}) {
   const isLive = fixture.status === "LIVE";
-  const isFinished = fixture.status === "FINISHED";
 
   const getStatusBadge = () => {
     switch (fixture.status) {
       case "LIVE":
         return (
           <div className="flex items-center gap-2 rounded-full border-2 border-[#2f7a4d] bg-[#2f7a4d]/10 text-[#2f7a4d] px-3 py-1 text-xs font-bold uppercase tracking-widest shrink-0">
-            <span className="w-2 h-2 rounded-full bg-[#2f7a4d] animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2f7a4d] animate-pulse" />
             LIVE
           </div>
         );
@@ -226,7 +723,7 @@ function FixtureRow({ fixture, index, onClick }: { fixture: Fixture; index: numb
       case "SCHEDULED":
       default:
         return (
-          <div className="rounded-full border-2 border-[#2b2b2b] bg-transparent text-[#2b2b2b] px-3 py-1 text-xs font-bold uppercase tracking-widest shrink-0">
+          <div className="rounded-full border-2 border-[#2b2b2b] bg-transparent text-[#2b2b2b] px-3 py-1.5 text-xs font-bold uppercase tracking-widest shrink-0">
             {new Date(fixture.kickoffAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </div>
         );
@@ -275,9 +772,20 @@ function FixtureRow({ fixture, index, onClick }: { fixture: Fixture; index: numb
         </div>
       </div>
 
-      {/* Right: Status / Time */}
-      <div className="shrink-0 flex justify-end md:w-32 mt-2 md:mt-0">
+      {/* Right: Status / Time & Admin Actions */}
+      <div className="shrink-0 flex items-center gap-3 justify-end md:w-56 mt-2 md:mt-0">
         {getStatusBadge()}
+        {isAdmin && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(fixture);
+            }}
+            className="rounded-full border-2 border-[#d9b45f] bg-[#d9b45f]/10 text-[#2b2b2b] hover:bg-[#d9b45f] px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105"
+          >
+            ✏️ Edit
+          </button>
+        )}
       </div>
     </motion.div>
   );

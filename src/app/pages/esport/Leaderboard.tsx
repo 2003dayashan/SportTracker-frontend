@@ -1,5 +1,26 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { TournamentApi, StandingsApi, type Tournament, type StandingDto } from '../../../lib/esportApi';
+
+const podiumContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12 } },
+};
+
+const podiumItem = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+};
+
+const rowContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const rowItem = {
+  hidden: { opacity: 0, x: -12 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+};
 
 interface LeaderboardProps {
   tournamentId?: string;
@@ -84,14 +105,21 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ tournamentId }) => {
       ) : (
         <>
           {/* PODIUM */}
-          <div className="flex flex-col md:flex-row justify-center items-end gap-6 pt-6">
+          <motion.div
+            className="flex flex-col md:flex-row justify-center items-end gap-6 pt-6"
+            variants={podiumContainer}
+            initial="hidden"
+            animate="show"
+          >
             {podiumOrdered.map((team, idx) => {
               const rank = sorted.indexOf(team) + 1;
               const isMain = rank === 1;
               return (
-                <div
+                <motion.div
                   key={team.teamId}
-                  className="w-full md:w-[260px] border rounded-sm p-6 text-center relative transition-all duration-300"
+                  variants={podiumItem}
+                  whileHover={{ y: -6 }}
+                  className="w-full md:w-[260px] border rounded-sm p-6 text-center relative transition-colors duration-300"
                   style={
                     isMain
                       ? { backgroundColor: 'var(--e-card)', borderColor: 'var(--e-accent)', boxShadow: '0 0 20px rgba(255,70,85,0.12)' }
@@ -124,10 +152,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ tournamentId }) => {
                       <span className="font-bold" style={{ color: 'var(--e-text)' }}>{team.points}</span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {/* TABLE */}
           {rest.length > 0 && (
@@ -141,11 +169,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ tournamentId }) => {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <motion.div className="space-y-3" variants={rowContainer} initial="hidden" animate="show">
                 {rest.map((row) => {
                   const rank = sorted.indexOf(row) + 1;
                   return (
-                    <div key={row.teamId} className="border p-4 rounded-sm flex flex-col sm:flex-row justify-between items-center gap-4 transition-all" style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}>
+                    <motion.div
+                      key={row.teamId}
+                      variants={rowItem}
+                      whileHover={{ x: 4, borderColor: 'var(--e-accent)' }}
+                      className="border p-4 rounded-sm flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors"
+                      style={{ backgroundColor: 'var(--e-card)', borderColor: 'var(--e-border)' }}
+                    >
                       <div className="flex items-center gap-6 w-full sm:w-auto justify-start">
                         <span className="font-mono font-black text-sm w-6" style={{ color: 'var(--e-text-dim)' }}>{String(rank).padStart(2, '0')}</span>
                         <span className="text-xs font-black tracking-wide uppercase" style={{ color: 'var(--e-text)' }}>{row.teamName}</span>
@@ -165,10 +199,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ tournamentId }) => {
                           <span className="font-black text-xs tracking-wide" style={{ color: 'var(--e-text)' }}>{row.points}</span>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
-              </div>
+              </motion.div>
             </div>
           )}
         </>

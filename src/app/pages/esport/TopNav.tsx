@@ -1,5 +1,6 @@
 // src/pages/esport/TopNav.tsx
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useEsportTheme } from './EsportThemeContext';
 
 const TopNav: React.FC = () => {
@@ -59,25 +60,41 @@ const TopNav: React.FC = () => {
           </span>
 
           {/* Dark / Light toggle — esport section only */}
-          <button
+          <motion.button
             type="button"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="h-8 w-8 rounded-full border border-[var(--e-border)] bg-[var(--e-card-bg-2)] flex items-center justify-center hover:border-[var(--e-accent)] transition-all"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.9, rotate: 25 }}
+            className="h-8 w-8 rounded-full border border-[var(--e-border)] bg-[var(--e-card-bg-2)] flex items-center justify-center overflow-hidden hover:border-[var(--e-accent)] transition-colors"
           >
-            {theme === 'dark' ? (
-              // Sun icon
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--e-text-muted)" strokeWidth="2">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-              </svg>
-            ) : (
-              // Moon icon
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--e-text-muted)" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-              </svg>
-            )}
-          </button>
+            <AnimatePresence mode="wait" initial={false}>
+              {theme === 'dark' ? (
+                <motion.svg
+                  key="sun"
+                  initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--e-text-muted)" strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </motion.svg>
+              ) : (
+                <motion.svg
+                  key="moon"
+                  initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--e-text-muted)" strokeWidth="2"
+                >
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                </motion.svg>
+              )}
+            </AnimatePresence>
+          </motion.button>
 
           <div className="h-8 w-8 rounded-full border border-[var(--e-accent)] bg-[var(--e-card-bg)] flex items-center justify-center cursor-pointer hover:scale-105 transition-all overflow-hidden">
             <span className="text-[10px] font-black text-[var(--e-accent)]">42</span>
