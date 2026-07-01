@@ -256,7 +256,6 @@ export default function App() {
             <LoginPage
               onBack={() => setPage("landing")}
               onLoginSuccess={loginSuccess}
-              isLoggedIn={isLoggedIn}
               onLogout={logout}
             />
           </Screen>
@@ -526,56 +525,7 @@ function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout, onFootball }: {
   );
 }
 
-function FeaturePage({ feature, onBack, isLoggedIn, onLogin, onLogout }: {
-  feature: DoorFeature;
-  onBack: () => void;
-  isLoggedIn: boolean;
-  onLogin: () => void;
-  onLogout: () => void;
-}) {
-  const copy = featureCopy[feature];
-  const icons = feature === "esport" ? [Trophy, Users, Zap] : feature === "questboard" ? [CalendarDays, Zap, Trophy] : [Shield, Users, Zap];
-  return (
-    <div className="min-h-screen overflow-auto bg-[#efe9da] text-[#2b2b2b]">
-      <div className="pointer-events-none fixed inset-0 opacity-[0.08] [background-image:linear-gradient(#2b2b2b_1px,transparent_1px),linear-gradient(90deg,#2b2b2b_1px,transparent_1px)] [background-size:46px_46px]" />
-      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-6 lg:px-10">
-        <header className="flex items-center justify-between gap-4">
-          <BackButton onClick={onBack} />
-          <Logo />
-          <AuthButtons isLoggedIn={isLoggedIn} onLogin={onLogin} onLogout={onLogout} />
-        </header>
-        <section className="grid flex-1 items-center gap-8 py-12 lg:grid-cols-[0.9fr_1.1fr]">
-          <div>
-            <span className="rounded-full border-2 border-[#2b2b2b] bg-[#f7f0df] px-3 py-1 font-['Space_Grotesk'] text-[11px] uppercase tracking-[0.22em]">{copy.eyebrow}</span>
-            <h1 className="mt-6 font-['Bebas_Neue'] text-[clamp(58px,10vw,126px)] leading-[0.88] tracking-[0.015em]">{copy.title}</h1>
-            <p className="mt-5 max-w-xl font-['Space_Grotesk'] text-lg leading-8 opacity-80">{copy.note}</p>
-          </div>
-          <div className="rotate-[-1deg] rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#f7f0df]/90 p-5 shadow-[10px_10px_0_rgba(43,43,43,0.22)]">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {copy.stats.map((stat, i) => {
-                const Icon = icons[i];
-                return (
-                  <div key={stat} className="min-h-36 rounded-3xl border-2 border-[#2b2b2b] bg-[#efe9da] p-4">
-                    <Icon className="mb-4 h-7 w-7" />
-                    <p className="font-['Bebas_Neue'] text-3xl leading-none">{stat}</p>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-5 space-y-3">
-              {copy.actions.map((action, i) => (
-                <button key={action} className="flex w-full items-center justify-between rounded-full border-2 border-[#2b2b2b] bg-[#efe9da] px-5 py-3 font-['Space_Grotesk'] transition-transform hover:-translate-y-0.5">
-                  <span>{String(i + 1).padStart(2, "0")} · {action}</span>
-                  <span>→</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
+
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -683,10 +633,9 @@ function DoorFigure() {
 
 // ─── LOGIN PAGE ────────────────────────────────────────────────────────────────
 
-function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: {
+function LoginPage({ onBack, onLoginSuccess, onLogout }: {
   onBack: () => void;
   onLoginSuccess: () => void;
-  isLoggedIn: boolean;
   onLogout: () => void;
 }) {
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");

@@ -11,6 +11,7 @@ export type EsportPage =
   | 'esport-matches'
   | 'esport-brackets'
   | 'esport-leaderboard'
+  | 'esport-profile'
   | 'esport-search';
 
 interface SidebarProps {
