@@ -1,0 +1,40 @@
+/* src/pages/esport/theme.css
+   Scoped theme variables — only affects elements inside .esport-root.
+   Import this once in Layout.tsx: import './theme.css';
+*/
+
+.esport-root.theme-dark {
+  --e-bg: #121212;
+  --e-bg-alt: #161616;
+  --e-card: #1C1C1C;
+  --e-border: #262626;
+  --e-text: #E0E0E0;
+  --e-text-muted: #A3A3A3;
+  --e-text-dim: #555555;
+  --e-accent: #FF4655;
+  --e-accent-hover: #e03e4b;
+  --e-success: #22C55E;
+  --e-warning: #EAB308;
+}
+
+.esport-root.theme-light {
+  /* Hand-drawn / doodle paper aesthetic matching the existing app sections */
+  --e-bg: #EFE9DA;
+  --e-bg-alt: #E4DCC8;
+  --e-card: #F5F0E3;
+  --e-border: #2B2B2B;
+  --e-text: #2B2B2B;
+  --e-text-muted: #5A5248;
+  --e-text-dim: #8A8171;
+  --e-accent: #FF4655;
+  --e-accent-hover: #e03e4b;
+  --e-success: #16A34A;
+  --e-warning: #CA8A04;
+}
+
+.esport-root {
+  background-color: var(--e-bg);
+  color: var(--e-text);
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
