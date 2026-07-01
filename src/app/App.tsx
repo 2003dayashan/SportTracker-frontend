@@ -118,6 +118,7 @@ export default function App() {
       const r = role.toUpperCase().trim();
       if (r === "ADMIN") return "ADMIN";
       if (r === "GUILD_MASTER") return "GUILD_MASTER";
+      // Handle variations from manual DB edits
       if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
       return "USER";
     };
@@ -147,15 +148,6 @@ export default function App() {
             }
           }
 
-          // Try questboard auth
-          const qbRes = await fetch("/api/questboard/auth/me", { credentials: "include" });
-          if (qbRes.ok) {
-            const qbData = await qbRes.json();
-            if (qbData?.id) {
-              userFound = true;
-              userData = qbData; // Questboard data takes precedence for Questboard
-            }
-          }
 
       if (userFound && userData) {
         // ✅ FIX — roles array handle + role string handle
@@ -208,12 +200,10 @@ export default function App() {
         const qbData = await qbRes.json();
         if (qbData?.id) userData = qbData;
       }
-    if (userData) {
-      // ✅ FIX
-      const roleSource = userData.roles || (userData.role ? [userData.role] : []);
-      userData.role = normalizeRoleFromArray(roleSource);
-      setCurrentUser(userData);
-    }
+      if (userData) {
+        userData.role = normalizeRole(userData.role);
+        setCurrentUser(userData);
+      }
     } catch (e) {
       console.error("Login session fetch failed", e);
     }
