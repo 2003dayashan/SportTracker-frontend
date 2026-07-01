@@ -19,6 +19,7 @@ The visual direction is intentionally playful, minimal, and sketch-like: off-whi
 - Local imported video assets from `src/imports/`
 - Custom CSS tokens in `src/styles/theme.css`
 - Google Fonts imported in `src/styles/fonts.css`
+- **sessionStorage** and **performance navigation APIs** for reload-aware state persistence
 
 ---
 
@@ -82,6 +83,18 @@ Important imported/reference files:
 - `login__7_.html` — source design reference for login/register panel toggle
 - Multiple `.mp4` animation clips used in the experience
 
+### `src/app/pages/` (Modular Extensions)
+The application has been expanded to include three distinct modules:
+- **E-Sports Module (`esport/`)**:
+  - `Dashboard.tsx`: E-Sports Admin Command Center displaying vital logs, match activities, and system vitality.
+  - `Tournaments.tsx`: Tournament lists and scheduler.
+  - `Teams.tsx`, `Players.tsx`, `Brackets.tsx`, `Leaderboard.tsx`, `Profile.tsx`, `Search.tsx`, `Sidebar.tsx`.
+- **Quest Board Module (`questboard/`)**:
+  - `QuestboardHome.tsx`: Hub for browsing quests and progression.
+  - `QuestList.tsx`, `QuestDetail.tsx` (submission flow), `GuildMasterPanel.tsx` (approvals), `QuestProfile.tsx`, `QuestLeaderboard.tsx`.
+- **Football Tracker Module (`football/`)**:
+  - `FootballHome.tsx`, `Leagues.tsx`, `Clubs.tsx`, `Fixtures.tsx`, `FixtureDetail.tsx`, `Standings.tsx`, `WorldCupAnalytics.tsx`.
+
 ---
 
 ## Page Structure
@@ -91,7 +104,11 @@ The app uses internal React state instead of URL routing.
 Current page states:
 
 ```ts
-type Page = "landing" | "doors" | "login" | "teams" | "matches" | "training";
+type Page = 
+  | "landing" | "doors" | "login" | "reset-password"
+  | EsportPage | "questboard"   
+  | FootballPage
+  | QuestboardPage;
 ```
 
 ### 1. Landing Page
@@ -130,9 +147,9 @@ Main UX:
 - Hotspots reveal labels only on hover/focus.
 
 Doors:
-- **Teams** → Teams feature page
-- **Matches** → Matches feature page
-- **Training** → Training feature page
+- **E-Sports** → Leads to competitive e-sports admin control panel, match fixtures, and tournament brackets.
+- **Quest Board** → Leads to the gamified task system where players claim and complete challenges for XP.
+- **Football** → Leads to the traditional soccer tracking service with league tables, club rosters, fixtures, and analytics.
 
 ### 3. Feature Pages
 
@@ -222,7 +239,16 @@ Behavior:
 - Login/register submit sets `isLoggedIn` to `true` and routes to arena.
 - Logout sets `isLoggedIn` to `false` and routes to landing.
 
-No backend authentication is currently connected.
+### Backend Authentication Integration
+The application connects directly to a Spring Boot REST API:
+- `GET /api/auth/me`: Restores user session on page load.
+- `POST /api/auth/signin`: Authenticates credentials.
+- `POST /api/auth/signup`: Registers new accounts.
+- `POST /api/auth/signout`: Invalidates active sessions.
+- Role checking is integrated supporting `ADMIN`, `GUILD_MASTER`, and `USER` roles to unlock admin privileges.
+
+### Password Visibility Toggle
+Both the Login and Create Account password input forms feature an inline show/hide visibility toggle with custom Eye/EyeOff icons.
 
 ---
 
@@ -525,6 +551,20 @@ __figma__entrypoint__.ts
 ```
 
 The production UI code currently compiles when tested with a temporary React root entry.
+
+---
+
+## Recent Fixes & UI Enhancements
+
+### 1. Reload Page Persistence
+Page state preservation was added to ensure reloading/refreshing the browser (F5) maintains the user's current sub-page (e.g. doors, dashboard, questboard) using `sessionStorage` and `window.performance` API check. Fresh visits (new tab or URL navigation) will correctly clear the state and default back to the **Landing Page** (`"landing"`).
+
+### 2. UI Cleanup & Refactoring
+- **Landing Page**: Simplified the landing interface to focus on visual line-art. Removed redundant CTA buttons (`Join the League` and `Watch Matches`). Cleaned navigation header links to just `CONTACT US` and `ABOUT` (removing Teams, Matches, Arena). Removed the `Hand-drawn e-sports` badge.
+- **Doors Page**: Removed `"The Arena"` badge from the header to simplify visual hierarchy.
+
+### 3. Backend OpenAPI Compatibility
+Upgraded the `springdoc-openapi-starter-webmvc-ui` dependency in the backend `pom.xml` from `2.5.0` to `2.8.5` to resolve runtime `NoSuchMethodError` crashes in Spring Boot 3.5.x.
 
 ---
 
