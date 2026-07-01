@@ -86,7 +86,21 @@ const featureCopy: Record<DoorFeature, {
 };
 
 export default function App() {
-  const [page, setPage] = useState<Page>("landing");
+  const [page, setPage] = useState<Page>(() => {
+    try {
+      const navigationEntry = window.performance?.getEntriesByType?.("navigation")?.[0] as PerformanceNavigationTiming | undefined;
+      const isReload = navigationEntry?.type === "reload" || (window.performance?.navigation?.type === 1);
+      if (isReload) {
+        const savedPage = sessionStorage.getItem("currentPage") as Page | null;
+        if (savedPage) return savedPage;
+      } else {
+        sessionStorage.removeItem("currentPage");
+      }
+    } catch (e) {
+      console.error("Failed to check reload status", e);
+    }
+    return "landing";
+  });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
@@ -163,6 +177,11 @@ export default function App() {
       
       restoreSession();
     }, []);
+
+    // Save page changes to sessionStorage for reload persistence
+    useEffect(() => {
+      sessionStorage.setItem("currentPage", page);
+    }, [page]);
 
   const goLogin = () => setPage("login");
   const logout = () => {
