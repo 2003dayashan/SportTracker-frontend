@@ -6,6 +6,18 @@ import { toast } from "sonner";
 import { InteractiveBackground } from "./components/InteractiveBackground";
 import { DoorsPage, type DoorFeature } from "./components/DoorsPage";
 
+import Layout from "./pages/esport/Layout";
+import { type EsportPage } from "./pages/esport/Sidebar";
+import EsportHome from "./pages/esport/Home";
+import EsportDashboard from "./pages/esport/Dashboard";
+import EsportTournaments from "./pages/esport/Tournaments";
+import EsportTeams from "./pages/esport/Teams";
+import EsportPlayers from "./pages/esport/Players";
+import EsportMatches from "./pages/esport/Matches";
+import EsportBrackets from "./pages/esport/Brackets";
+import EsportLeaderboard from "./pages/esport/Leaderboard";
+import EsportProfile from "./pages/esport/Profile";
+
 import FootballHome from "./pages/football/FootballHome";
 import Leagues from "./pages/football/Leagues";
 import Clubs from "./pages/football/Clubs";
@@ -36,9 +48,11 @@ type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail
 // App.tsx top — Page type
 type Page = 
   | "landing" | "doors" | "login" | "reset-password"
-  | "esport" | "questboard"   
+  | EsportPage | "questboard"   
   | FootballPage
   | QuestboardPage;
+
+const isEsportPage = (p: Page): p is EsportPage => p.startsWith("esport-");
 
 const featureCopy: Record<DoorFeature, {
   eyebrow: string;
@@ -81,7 +95,10 @@ export default function App() {
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
-  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "GUILD_MASTER";
+  const isAdmin = isLoggedIn && (
+  currentUser?.role === "ADMIN" ||
+  currentUser?.role === "GUILD_MASTER"
+);
 
   // Check URL for reset token on page load
   useEffect(() => {
@@ -98,15 +115,18 @@ export default function App() {
     const normalizeRole = (role: string | undefined | null): string => {
       if (!role) return "USER";
       const r = role.toUpperCase().trim();
-      
-      if (r === "ROLE_ADMIN" || r === "ADMIN") return "ADMIN";
-      if (r === "ROLE_GUILD_MASTER" || r === "GUILD_MASTER") return "GUILD_MASTER";
-      if (r === "ROLE_USER" || r === "USER") return "USER";
-
+      if (r === "ADMIN") return "ADMIN";
+      if (r === "GUILD_MASTER") return "GUILD_MASTER";
       // Handle variations from manual DB edits
-      if (r.includes("ADMIN")) return "ADMIN";
-      if (r.includes("GUILD") || r.includes("MASTER")) return "GUILD_MASTER";
-      
+      if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
+      return "USER";
+    };
+
+    // Backend roles array → single role string
+    const normalizeRoleFromArray = (roles: string[] | undefined | null): string => {
+      if (!roles || roles.length === 0) return "USER";
+      const combined = roles.join(",").toUpperCase();
+      if (combined.includes("ADMIN") || combined.includes("GUILD_MASTER") || combined.includes("MASTER")) return "ADMIN";
       return "USER";
     };
 
@@ -128,20 +148,20 @@ export default function App() {
           }
 
 
-          if (userFound && userData) {
-            // Normalize the role to handle corrupted DB values
-            userData.role = normalizeRole(userData.role);
-            setIsLoggedIn(true);
-            setCurrentUser(userData);
+      if (userFound && userData) {
+        // ✅ FIX — roles array handle + role string handle
+        const roleSource = userData.roles || (userData.role ? [userData.role] : []);
+        userData.role = normalizeRoleFromArray(roleSource);
+        setIsLoggedIn(true);
+        setCurrentUser(userData);
 
-            // Current page restore
-            const savedPage = localStorage.getItem("currentPage") as Page | null;
-            if (savedPage && savedPage !== "landing" && savedPage !== "login") {
-              setPage(savedPage);
-            } else {
-              setPage("doors");
-            }
-          }
+        const savedPage = localStorage.getItem("currentPage") as Page | null;
+        if (savedPage && savedPage !== "landing" && savedPage !== "login") {
+          setPage(savedPage);
+        } else {
+          setPage("doors");
+        }
+      }
         } catch (e) {
           console.error("Session restore failed", e);
         }
@@ -174,7 +194,11 @@ export default function App() {
         const data = await mainRes.json();
         if (data?.id) userData = data;
       }
-
+      const qbRes = await fetch("/api/questboard/auth/me", { credentials: "include" });
+      if (qbRes.ok) {
+        const qbData = await qbRes.json();
+        if (qbData?.id) userData = qbData;
+      }
       if (userData) {
         userData.role = normalizeRole(userData.role);
         setCurrentUser(userData);
@@ -208,7 +232,7 @@ export default function App() {
                 if (feature === "football") {
                   setPage("football-home");
                 } else if (feature === "esport") {
-                  setPage("esport" as Page);
+                  setPage("esport-home");
                 } else if (feature === "questboard") {
                   setPage("questboard-home");
                 } else {
@@ -247,15 +271,23 @@ export default function App() {
           </Screen>
         )}
 
-        {page === "esport" && (
+        {isEsportPage(page) && (
           <Screen key={page}>
-            <FeaturePage
-              feature={page as DoorFeature}
-              onBack={() => setPage("doors")}
-              isLoggedIn={isLoggedIn}
-              onLogin={goLogin}
-              onLogout={logout}
-            />
+            <Layout
+              currentPage={page}
+              onNavigate={(p) => setPage(p)}
+              onExit={() => setPage("doors")}
+            >
+              {page === "esport-home" && <EsportHome />}
+              {page === "esport-dashboard" && <EsportDashboard />}
+              {page === "esport-tournaments" && <EsportTournaments />}
+              {page === "esport-teams" && <EsportTeams />}
+              {page === "esport-players" && <EsportPlayers />}
+              {page === "esport-matches" && <EsportMatches />}
+              {page === "esport-brackets" && <EsportBrackets />}
+              {page === "esport-leaderboard" && <EsportLeaderboard />}
+              {page === "esport-profile" && <EsportProfile />}
+            </Layout>
           </Screen>
         )}
 
@@ -343,16 +375,16 @@ export default function App() {
             <Leagues
               isAdmin={isAdmin}
               onBack={() => setPage("football-home")}
-              onViewStandings={(id) => {
+              onViewStandings={(id, name) => {          
                 setSelectedLeagueId(id);
-                setSelectedLeagueName("Selected League");
+                setSelectedLeagueName(name);           
                 setPage("football-standings");
               }}
               onViewFixtures={(id) => {
                 setSelectedLeagueId(id);
                 setPage("football-fixtures");
               }}
-            />
+            />      
           </Screen>
         )}
         {page === "football-clubs" && (

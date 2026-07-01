@@ -31,6 +31,46 @@ export default function FootballHome({
   const [fanName, setFanName] = useState("");
   const [fanCountryCode, setFanCountryCode] = useState<string | null>(null);
 
+  const [stats, setStats] = useState({
+    leaguesCount: 0,
+    clubsCount: 0,
+    fixturesCount: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [leaguesRes, clubsRes, fixturesRes] = await Promise.all([
+          fetch("/api/football/leagues"),
+          fetch("/api/football/clubs"),
+          fetch("/api/football/fixtures"),
+        ]);
+
+        const leaguesData = leaguesRes.ok ? await leaguesRes.json() : [];
+        const clubsData = clubsRes.ok ? await clubsRes.json() : [];
+        const fixturesData = fixturesRes.ok ? await fixturesRes.json() : [];
+
+        setStats({
+          leaguesCount: Array.isArray(leaguesData) ? leaguesData.length : 0,
+          clubsCount: Array.isArray(clubsData) ? clubsData.length : 0,
+          fixturesCount: Array.isArray(fixturesData) ? fixturesData.length : 0,
+        });
+      } catch (err) {
+        console.error("Failed to fetch football stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(fetchStats, 30000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   useEffect(() => {
     if (!isLoggedIn) return;
     fetch("/api/football/fan-profile/me", { credentials: "include" })
@@ -209,9 +249,9 @@ export default function FootballHome({
 
         {/* ── STATS STRIP — bottom ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <StatCard emoji="🏆" number="12" label="LEAGUES" onClick={onLeagues} />
-          <StatCard emoji="🛡️" number="48" label="CLUBS"   onClick={onClubs} />
-          <StatCard emoji="📅" number="320" label="FIXTURES" onClick={onFixtures} />
+          <StatCard emoji="🏆" number={statsLoading ? "..." : stats.leaguesCount.toString()} label="LEAGUES" onClick={onLeagues} />
+          <StatCard emoji="🛡️" number={statsLoading ? "..." : stats.clubsCount.toString()} label="CLUBS"   onClick={onClubs} />
+          <StatCard emoji="📅" number={statsLoading ? "..." : stats.fixturesCount.toString()} label="FIXTURES" onClick={onFixtures} />
         </div>
 
         {/* ── FOOTER ── */}
