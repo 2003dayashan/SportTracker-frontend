@@ -6,6 +6,11 @@ import { toast } from "sonner";
 import { InteractiveBackground } from "./components/InteractiveBackground";
 import { DoorsPage, type DoorFeature } from "./components/DoorsPage";
 
+import { ProfileWidget } from "./components/ProfileWidget";
+
+import { UserProfilePage } from "./pages/global/UserProfilePage";
+import { AdminProfilePage } from "./pages/global/AdminProfilePage";
+
 import Layout from "./pages/esport/Layout";
 import { type EsportPage } from "./pages/esport/Sidebar";
 import EsportHome from "./pages/esport/Home";
