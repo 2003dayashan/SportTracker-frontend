@@ -54,11 +54,13 @@ export default function QuestboardHome({ onBack, onBrowseQuests, onMyProgress, o
             <p className="opacity-80">See who rules the realm.</p>
           </button>
 
-          <button onClick={onAdminPanel} className="group relative rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#2b2b2b] text-[#efe9da] p-8 text-left shadow-[8px_8px_0_0_rgba(43,43,43,0.22)] hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.22)] hover:translate-y-1 hover:translate-x-1 transition-all">
-            <Users className="h-12 w-12 mb-4 group-hover:scale-110 transition-transform" />
-            <h2 className="font-['Bebas_Neue'] text-4xl mb-2">Guild Master Panel</h2>
-            <p className="opacity-80">Create and manage quests for the community.</p>
-          </button>
+          {isAdmin && (
+            <button onClick={onAdminPanel} className="group relative rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#2b2b2b] text-[#efe9da] p-8 text-left shadow-[8px_8px_0_0_rgba(43,43,43,0.22)] hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.22)] hover:translate-y-1 hover:translate-x-1 transition-all">
+              <Users className="h-12 w-12 mb-4 group-hover:scale-110 transition-transform" />
+              <h2 className="font-['Bebas_Neue'] text-4xl mb-2">Guild Master Panel</h2>
+              <p className="opacity-80">Create and manage quests for the community.</p>
+            </button>
+          )}
         </div>
       </div>
     </div>

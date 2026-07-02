@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Shield, Save } from "lucide-react";
-import { type User as UserType } from "../../questboard/api";
+import { type User as UserType } from "../questboard/api";
 
 interface AdminProfilePageProps {
   currentUser: UserType | null;

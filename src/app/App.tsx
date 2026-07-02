@@ -56,7 +56,8 @@ type Page =
   | "landing" | "doors" | "login" | "reset-password"
   | EsportPage | "questboard"   
   | FootballPage
-  | QuestboardPage;
+  | QuestboardPage
+  | "user-profile" | "admin-profile";
 
 const isEsportPage = (p: Page): p is EsportPage => p.startsWith("esport-");
 
