@@ -208,7 +208,8 @@ export default function App() {
         if (qbData?.id) userData = qbData;
       }
       if (userData) {
-        userData.role = normalizeRole(userData.role);
+        const roleSource = userData.roles || (userData.role ? [userData.role] : []);
+        userData.role = normalizeRoleFromArray(roleSource);
         setCurrentUser(userData);
       }
     } catch (e) {
