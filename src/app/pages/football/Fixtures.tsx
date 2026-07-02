@@ -69,6 +69,10 @@ export default function Fixtures({
   const [editMatchday, setEditMatchday] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Delete Confirm State
+  const [deleteFixture, setDeleteFixture] = useState<Fixture | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Toast
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -219,6 +223,25 @@ export default function Fixtures({
     setEditMatchday(fixture.matchday);
   };
 
+  const handleDeleteFixture = async () => {
+    if (!deleteFixture) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/football/fixtures/${deleteFixture.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete fixture");
+      setDeleteFixture(null);
+      fetchFixtures();
+      showToast("Fixture deleted successfully!");
+    } catch {
+      showToast("Error deleting fixture.", "error");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredFixtures = fixtures.filter((f) =>
     activeTab === "ALL" ? true : f.status === activeTab
   );
@@ -358,6 +381,7 @@ export default function Fixtures({
                       isAdmin={isAdmin}
                       onClick={() => onFixtureClick(fixture.id)}
                       onEdit={openEdit}
+                      onDelete={(f) => setDeleteFixture(f)}
                     />
                   ))}
                 </div>
@@ -377,6 +401,7 @@ export default function Fixtures({
                       isAdmin={isAdmin}
                       onClick={() => onFixtureClick(fixture.id)}
                       onEdit={openEdit}
+                      onDelete={(f) => setDeleteFixture(f)}
                     />
                   ))}
                 </div>
@@ -685,6 +710,47 @@ export default function Fixtures({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteFixture && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2b2b2b]/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteFixture(null)}
+              className="absolute inset-0"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative z-10 w-full max-w-sm bg-[#f7f0df] border-2 border-[#2b2b2b] rounded-[2rem] shadow-[8px_8px_0_rgba(43,43,43,1)] p-8 text-center"
+            >
+              <p className="font-['Bebas_Neue'] text-3xl mb-2">Delete Fixture?</p>
+              <p className="font-['Caveat'] text-xl mb-6 opacity-70">
+                "{deleteFixture.homeClubName} vs {deleteFixture.awayClubName}" will be permanently removed.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setDeleteFixture(null)}
+                  className="flex-1 rounded-full border-2 border-[#2b2b2b] py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#2b2b2b] hover:text-[#f3eee1] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteFixture}
+                  disabled={isDeleting}
+                  className="flex-1 rounded-full border-2 border-red-400 bg-red-400 text-white py-3 text-sm font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-transparent hover:text-red-500 transition-colors"
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -696,12 +762,14 @@ function FixtureRow({
   isAdmin,
   onClick,
   onEdit,
+  onDelete,
 }: {
   fixture: Fixture;
   index: number;
   isAdmin: boolean;
   onClick: () => void;
   onEdit: (fixture: Fixture) => void;
+  onDelete: (fixture: Fixture) => void;
 }) {
   const isLive = fixture.status === "LIVE";
 
@@ -773,18 +841,29 @@ function FixtureRow({
       </div>
 
       {/* Right: Status / Time & Admin Actions */}
-      <div className="shrink-0 flex items-center gap-3 justify-end md:w-56 mt-2 md:mt-0">
+      <div className="shrink-0 flex items-center gap-3 justify-end md:w-[280px] mt-2 md:mt-0">
         {getStatusBadge()}
         {isAdmin && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(fixture);
-            }}
-            className="rounded-full border-2 border-[#d9b45f] bg-[#d9b45f]/10 text-[#2b2b2b] hover:bg-[#d9b45f] px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105"
-          >
-            ✏️ Edit
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(fixture);
+              }}
+              className="rounded-full border-2 border-[#d9b45f] bg-[#d9b45f]/10 text-[#2b2b2b] hover:bg-[#d9b45f] px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105 shrink-0"
+            >
+              ✏️ Edit
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(fixture);
+              }}
+              className="rounded-full border-2 border-red-400 bg-red-400/10 text-red-500 hover:bg-red-400 hover:text-white px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105 shrink-0"
+            >
+              🗑 Delete
+            </button>
+          </div>
         )}
       </div>
     </motion.div>
