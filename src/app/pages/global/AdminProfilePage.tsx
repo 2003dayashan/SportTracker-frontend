@@ -6,9 +6,10 @@ import { type User as UserType } from "../../questboard/api";
 interface AdminProfilePageProps {
   currentUser: UserType | null;
   onBack: () => void;
+  onProfileUpdate?: () => void;
 }
 
-export function AdminProfilePage({ currentUser, onBack }: AdminProfilePageProps) {
+export function AdminProfilePage({ currentUser, onBack, onProfileUpdate }: AdminProfilePageProps) {
   const [username, setUsername] = useState(currentUser?.username || "");
   const [password, setPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -19,12 +20,22 @@ export function AdminProfilePage({ currentUser, onBack }: AdminProfilePageProps)
     setIsSaving(true);
     setMessage(null);
 
-    // Mock API call to update profile
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real app, this would be a fetch to an endpoint like /api/auth/update-profile
+      const response = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: password || undefined })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
       setMessage({ text: "Admin credentials updated successfully!", type: "success" });
-      setPassword(""); // Clear password field after update
+      setPassword("");
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
     } catch (err) {
       setMessage({ text: "Failed to update credentials.", type: "error" });
     } finally {
@@ -67,7 +78,16 @@ export function AdminProfilePage({ currentUser, onBack }: AdminProfilePageProps)
                 </div>
                 {isSaving && (
                   <>
-                    <div className="absolute inset-[-6px] rounded-full border-[4px] border-dashed border-[#2b2b2b] animate-[spin_4s_linear_infinite]" />
+                    <svg className="absolute inset-[-6px] w-[108px] h-[108px] animate-[spin_2s_linear_infinite] pointer-events-none" viewBox="0 0 100 100">
+                      <circle 
+                        cx="50" cy="50" r="48" 
+                        fill="none" 
+                        stroke="#2b2b2b" 
+                        strokeWidth="4" 
+                        strokeDasharray="30 20" 
+                        strokeLinecap="round" 
+                      />
+                    </svg>
                     <div className="absolute top-0 right-0 w-4 h-4 bg-[#ef4444] rounded-full border-2 border-[#f7f0df] z-20 animate-pulse" />
                   </>
                 )}

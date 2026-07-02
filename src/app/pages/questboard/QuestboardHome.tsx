@@ -26,7 +26,7 @@ export default function QuestboardHome({ onBack, onBrowseQuests, onMyProgress, o
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} /> Back
         </button>
-        <div className="font-['Bebas_Neue'] text-3xl">QUEST BOARD</div>
+        <div className="font-['Bebas_Neue'] text-3xl pr-24 lg:pr-32">QUEST BOARD</div>
       </header>
 
       <div className="max-w-4xl mx-auto relative z-10">

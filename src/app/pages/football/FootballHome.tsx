@@ -119,43 +119,19 @@ export default function FootballHome({
             </div>
 
             {/* Back to Doors */}
-
-                <button
-                  onClick={onBackToDoors}
-                  className="rounded-full border-2 border-[#2b2b2b] bg-transparent
-                            px-5 py-2 font-['Space_Grotesk'] font-bold text-xs
-                            uppercase tracking-widest hover:bg-[#2b2b2b] hover:text-[#f3eee1]
-                            transition-all flex items-center gap-2"
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="2"
-                          strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Doors
-                </button>
-
-                {/* Logout or Login */}
-                {isLoggedIn ? (
-                  <button
-                    onClick={onLogout}
-                    className="rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b]
-                              text-[#f3eee1] px-5 py-2 font-['Space_Grotesk'] font-bold
-                              text-xs uppercase tracking-widest hover:bg-transparent
-                              hover:text-[#2b2b2b] transition-all"
-                  >
-                    Logout
-                  </button>
-                ) : (
-                  <button
-                    onClick={onBackToDoors}
-                    className="rounded-full border-2 border-[#d9b45f] bg-[#d9b45f]
-                              text-[#2b2b2b] px-5 py-2 font-['Space_Grotesk'] font-bold
-                              text-xs uppercase tracking-widest hover:bg-transparent
-                              hover:text-[#2b2b2b] transition-all"
-                  >
-                    Login
-                  </button>
-                )}
+            <button
+              onClick={onBackToDoors}
+              className="rounded-full border-2 border-[#2b2b2b] bg-transparent
+                        px-5 py-2 font-['Space_Grotesk'] font-bold text-xs
+                        uppercase tracking-widest hover:bg-[#2b2b2b] hover:text-[#f3eee1]
+                        transition-all flex items-center gap-2 mr-24 lg:mr-32"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Doors
+            </button>
           </div>
         </nav>
 

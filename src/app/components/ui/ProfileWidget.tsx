@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { User as UserIcon, Shield, Trophy, Settings, LogOut, Code, Swords } from "lucide-react";
 import { type User } from "../pages/questboard/api";
 import { type Page } from "../App";
+import { PrimeDoorButton } from "../PrimeDoorButton";
 
 interface ProfileWidgetProps {
   isLoggedIn: boolean;
@@ -49,11 +50,14 @@ export function ProfileWidget({
         className="w-14 h-14 rounded-full border-[3px] border-[#2b2b2b] bg-[#efe9da] shadow-[4px_4px_0_0_rgba(43,43,43,0.4)] flex items-center justify-center relative overflow-hidden"
       >
         {isLoggedIn ? (
-          isAdmin ? (
-            <Shield className="w-6 h-6 text-[#2b2b2b]" strokeWidth={2.5} />
-          ) : (
-            <UserIcon className="w-6 h-6 text-[#2b2b2b]" strokeWidth={2.5} />
-          )
+          <>
+            {isAdmin ? (
+              <Shield className="w-6 h-6 text-[#2b2b2b]" strokeWidth={2.5} />
+            ) : (
+              <UserIcon className="w-6 h-6 text-[#2b2b2b]" strokeWidth={2.5} />
+            )}
+            <div className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-[#2b2b2b] animate-pulse ${isAdmin ? 'bg-[#ef4444]' : 'bg-[#4ade80]'}`} />
+          </>
         ) : (
           <UserIcon className="w-6 h-6 text-[#2b2b2b] opacity-60" strokeWidth={2.5} />
         )}
@@ -69,7 +73,7 @@ export function ProfileWidget({
             className="absolute top-[calc(100%+0.75rem)] right-0 w-64 bg-[#f7f0df] border-[3px] border-[#2b2b2b] rounded-2xl shadow-[8px_8px_0_0_rgba(43,43,43,0.3)] overflow-hidden flex flex-col"
             style={{ transformOrigin: "top right" }}
           >
-            {isLoggedIn && currentUser && (
+            {isLoggedIn && currentUser ? (
               <>
                 <div className="p-4 border-b-[3px] border-[#2b2b2b] bg-[#efe9da]">
                   <p className="font-['Bebas_Neue'] text-3xl text-[#2b2b2b] truncate leading-none">
@@ -134,6 +138,24 @@ export function ProfileWidget({
                   />
                 </div>
               </>
+            ) : (
+              <div className="p-4 space-y-4 bg-[#2b2b2b] text-[#f7f0df] flex flex-col items-center">
+                <div className="font-['Bebas_Neue'] text-2xl tracking-widest text-[#d9b45f] text-center w-full border-b-[3px] border-[#d9b45f] pb-2 mb-2">
+                  IDENTIFICATION REQUIRED
+                </div>
+                <PrimeDoorButton 
+                  variant="login" 
+                  label="USER LOGIN" 
+                  onComplete={onLogin} 
+                  className="w-full justify-center !text-[#f7f0df] !border-[#f7f0df]"
+                />
+                <PrimeDoorButton 
+                  variant="admin" 
+                  label="ADMIN LOGIN" 
+                  onComplete={onLogin} 
+                  className="w-full justify-center"
+                />
+              </div>
             )}
           </motion.div>
         )}

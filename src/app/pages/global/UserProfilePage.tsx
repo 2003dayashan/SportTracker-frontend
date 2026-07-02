@@ -6,9 +6,10 @@ import { type User as UserType } from "../../questboard/api";
 interface UserProfilePageProps {
   currentUser: UserType | null;
   onBack: () => void;
+  onProfileUpdate?: () => void;
 }
 
-export function UserProfilePage({ currentUser, onBack }: UserProfilePageProps) {
+export function UserProfilePage({ currentUser, onBack, onProfileUpdate }: UserProfilePageProps) {
   const [username, setUsername] = useState(currentUser?.username || "");
   const [password, setPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -19,12 +20,22 @@ export function UserProfilePage({ currentUser, onBack }: UserProfilePageProps) {
     setIsSaving(true);
     setMessage(null);
 
-    // Mock API call to update profile
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real app, this would be a fetch to an endpoint like /api/auth/update-profile
+      const response = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: password || undefined })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
       setMessage({ text: "Profile updated successfully!", type: "success" });
-      setPassword(""); // Clear password field after update
+      setPassword(""); 
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
     } catch (err) {
       setMessage({ text: "Failed to update profile.", type: "error" });
     } finally {
@@ -67,7 +78,16 @@ export function UserProfilePage({ currentUser, onBack }: UserProfilePageProps) {
                 </div>
                 {isSaving && (
                   <>
-                    <div className="absolute inset-[-6px] rounded-full border-[4px] border-dashed border-[#f7f0df] animate-[spin_4s_linear_infinite]" />
+                    <svg className="absolute inset-[-6px] w-[108px] h-[108px] animate-[spin_2s_linear_infinite] pointer-events-none" viewBox="0 0 100 100">
+                      <circle 
+                        cx="50" cy="50" r="48" 
+                        fill="none" 
+                        stroke="#f7f0df" 
+                        strokeWidth="4" 
+                        strokeDasharray="30 20" 
+                        strokeLinecap="round" 
+                      />
+                    </svg>
                     <div className="absolute top-0 right-0 w-4 h-4 bg-[#4ade80] rounded-full border-2 border-[#2b2b2b] z-20 animate-pulse" />
                   </>
                 )}
