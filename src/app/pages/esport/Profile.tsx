@@ -157,3 +157,4 @@ const Profile: React.FC<ProfileProps> = ({ playerId }) => {
 };
 
 export default Profile;
+

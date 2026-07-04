@@ -382,3 +382,4 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
 };
 
 export default Tournaments;
+

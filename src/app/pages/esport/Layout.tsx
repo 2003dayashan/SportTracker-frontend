@@ -40,3 +40,4 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, onEx
 };
 
 export default Layout;
+

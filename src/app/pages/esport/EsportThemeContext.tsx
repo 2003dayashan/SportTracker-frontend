@@ -38,3 +38,4 @@ export const useEsportTheme = (): EsportThemeContextValue => {
   if (!ctx) throw new Error('useEsportTheme must be used inside <EsportThemeProvider>');
   return ctx;
 };
+
