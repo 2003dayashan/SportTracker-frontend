@@ -10,6 +10,7 @@ import { PrimeDoorButton } from "./components/PrimeDoorButton";
 
 import { UserProfilePage } from "./pages/global/UserProfilePage";
 import { AdminProfilePage } from "./pages/global/AdminProfilePage";
+import { AdminUserManagementPage } from "./pages/global/AdminUserManagementPage";
 
 import Layout from "./pages/esport/Layout";
 import { type EsportPage } from "./pages/esport/Sidebar";
@@ -38,6 +39,7 @@ import QuestDetail from "./pages/questboard/QuestDetail";
 import GuildMasterPanel from "./pages/questboard/GuildMasterPanel";
 import QuestProfile from "./pages/questboard/QuestProfile";
 import QuestLeaderboard from "./pages/questboard/QuestLeaderboard";
+import QuestboardDashboard from "./pages/questboard/QuestboardDashboard";
 import { type User } from "./pages/questboard/api";
 
 type FootballPage =
@@ -49,7 +51,7 @@ type FootballPage =
   | "football-standings"
   | "football-worldcup";
 
-type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail" | "questboard-admin" | "questboard-profile" | "questboard-leaderboard";
+type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail" | "questboard-admin" | "questboard-profile" | "questboard-leaderboard" | "questboard-dashboard";
 
 // App.tsx top — Page type
 type Page = 
@@ -57,7 +59,7 @@ type Page =
   | EsportPage | "questboard"   
   | FootballPage
   | QuestboardPage
-  | "user-profile" | "admin-profile";
+  | "user-profile" | "admin-profile" | "admin-users";
 
 const isEsportPage = (p: Page): p is EsportPage => p.startsWith("esport-");
 
@@ -312,6 +314,7 @@ export default function App() {
           <Screen key="questboard-home">
             <QuestboardHome
               onBack={() => setPage("doors")}
+              onDashboard={() => setPage("questboard-dashboard")}
               onBrowseQuests={() => setPage("questboard-list")}
               onMyProgress={() => setPage("questboard-profile")}
               onLeaderboard={() => setPage("questboard-leaderboard")}
@@ -361,6 +364,13 @@ export default function App() {
         {page === "questboard-leaderboard" && (
           <Screen key="questboard-leaderboard">
             <QuestLeaderboard
+              onBack={() => setPage("questboard-home")}
+            />
+          </Screen>
+        )}
+        {page === "questboard-dashboard" && (
+          <Screen key="questboard-dashboard">
+            <QuestboardDashboard
               onBack={() => setPage("questboard-home")}
             />
           </Screen>
@@ -465,6 +475,14 @@ export default function App() {
               currentUser={currentUser} 
               onBack={() => setPage("doors")} 
               onProfileUpdate={refreshUser}
+            />
+          </Screen>
+        )}
+        {page === "admin-users" && (
+          <Screen key="admin-users">
+            <AdminUserManagementPage 
+              currentUser={currentUser} 
+              onBack={() => setPage("doors")} 
             />
           </Screen>
         )}

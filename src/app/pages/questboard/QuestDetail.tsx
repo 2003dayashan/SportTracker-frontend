@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { fetchQuests, fetchMyProgress, claimQuest, submitQuest, Quest, QuestSubmission } from "./api";
+import { fetchQuestById, fetchMyProgress, claimQuest, submitQuest, Quest, QuestSubmission } from "./api";
 import { toast } from "sonner";
 
 type Props = {
@@ -20,8 +20,8 @@ export default function QuestDetail({ questId, isLoggedIn, currentUser, onBack }
 
   const loadData = async () => {
     try {
-      const quests = await fetchQuests();
-      setQuest(quests.find(q => q.id === questId) || null);
+      const q = await fetchQuestById(questId);
+      setQuest(q);
       
       if (isLoggedIn) {
         const progress = await fetchMyProgress();

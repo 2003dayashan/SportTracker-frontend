@@ -12,6 +12,9 @@ export type Quest = {
   description: string;
   serviceType: ServiceType;
   points: number;
+  difficulty?: number;
+  isLiveEventRelated?: boolean;
+  relatedMatchId?: string;
 };
 
 export type SubmissionStatus = "CLAIMED" | "SUBMITTED" | "APPROVED" | "REJECTED";
@@ -27,16 +30,30 @@ export type QuestSubmission = {
   timestamp: string;
 };
 
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+  size: number;
+}
+
 const API_BASE = "/api/quests";
 
-export async function fetchQuests(): Promise<Quest[]> {
-  const res = await fetch(API_BASE);
+export async function fetchQuests(page: number = 0, size: number = 10): Promise<PaginatedResponse<Quest>> {
+  const res = await fetch(`${API_BASE}?page=${page}&size=${size}`);
   if (!res.ok) throw new Error("Failed to fetch quests");
   return res.json();
 }
 
-export async function fetchQuestsByService(service: ServiceType): Promise<Quest[]> {
-  const res = await fetch(`${API_BASE}/service/${service}`);
+export async function fetchQuestById(id: string): Promise<Quest> {
+  const res = await fetch(`${API_BASE}/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch quest");
+  return res.json();
+}
+
+export async function fetchQuestsByService(service: ServiceType, page: number = 0, size: number = 10): Promise<PaginatedResponse<Quest>> {
+  const res = await fetch(`${API_BASE}/service/${service}?page=${page}&size=${size}`);
   if (!res.ok) throw new Error("Failed to fetch quests");
   return res.json();
 }
@@ -49,6 +66,23 @@ export async function createQuest(quest: Partial<Quest>): Promise<Quest> {
   });
   if (!res.ok) throw new Error("Failed to create quest");
   return res.json();
+}
+
+export async function updateQuest(id: string, quest: Partial<Quest>): Promise<Quest> {
+  const res = await fetch(`${API_BASE}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(quest),
+  });
+  if (!res.ok) throw new Error("Failed to update quest");
+  return res.json();
+}
+
+export async function deleteQuest(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete quest");
 }
 
 // --- User Progression ---
@@ -79,8 +113,8 @@ export async function fetchLeaderboard(): Promise<{ userId: string, username: st
 
 // --- Admin ---
 
-export async function fetchPendingSubmissions(): Promise<QuestSubmission[]> {
-  const res = await fetch(`${API_BASE}/submissions/pending`, { credentials: "include" });
+export async function fetchPendingSubmissions(page: number = 0, size: number = 10): Promise<PaginatedResponse<QuestSubmission>> {
+  const res = await fetch(`${API_BASE}/submissions/pending?page=${page}&size=${size}`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch pending submissions");
   return res.json();
 }

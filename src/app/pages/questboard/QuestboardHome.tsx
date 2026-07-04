@@ -5,13 +5,14 @@ import { ArrowLeft, Trophy, Users, Zap, ClipboardList } from "lucide-react";
 type Props = {
   onBack: () => void;
   onBrowseQuests: () => void;
+  onDashboard: () => void;
   onMyProgress: () => void;
   onLeaderboard: () => void;
   onAdminPanel: () => void;
   currentUser: User | null;
 };
 
-export default function QuestboardHome({ onBack, onBrowseQuests, onMyProgress, onLeaderboard, onAdminPanel, currentUser }: Props) {
+export default function QuestboardHome({ onBack, onDashboard, onBrowseQuests, onMyProgress, onLeaderboard, onAdminPanel, currentUser }: Props) {
   const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "GUILD_MASTER";
 
   return (
@@ -41,10 +42,16 @@ export default function QuestboardHome({ onBack, onBrowseQuests, onMyProgress, o
             <h2 className="font-['Bebas_Neue'] text-4xl mb-2">Browse Quests</h2>
             <p className="opacity-80">Find challenges across Esport and Football.</p>
           </button>
+
+          <button onClick={onDashboard} className="group relative rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#f7f0df] p-8 text-left shadow-[8px_8px_0_0_rgba(43,43,43,0.22)] hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.22)] hover:translate-y-1 hover:translate-x-1 transition-all">
+            <Zap className="h-12 w-12 mb-4 group-hover:scale-110 transition-transform text-orange-500" />
+            <h2 className="font-['Bebas_Neue'] text-4xl mb-2">Live Dashboard</h2>
+            <p className="opacity-80">Track live scores and your personal progress.</p>
+          </button>
           
           <button onClick={onMyProgress} className="group relative rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#f7f0df] p-8 text-left shadow-[8px_8px_0_0_rgba(43,43,43,0.22)] hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.22)] hover:translate-y-1 hover:translate-x-1 transition-all">
-            <Zap className="h-12 w-12 mb-4 group-hover:scale-110 transition-transform" />
-            <h2 className="font-['Bebas_Neue'] text-4xl mb-2">My Progress</h2>
+            <Trophy className="h-12 w-12 mb-4 group-hover:scale-110 transition-transform text-yellow-500" />
+            <h2 className="font-['Bebas_Neue'] text-4xl mb-2">My Submissions</h2>
             <p className="opacity-80">Track your completed quests and points.</p>
           </button>
 

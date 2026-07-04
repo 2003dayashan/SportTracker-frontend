@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import EnhancedQuestCard from "../../components/EnhancedQuestCard";
 import { fetchQuests, fetchQuestsByService, fetchMyProgress, Quest, QuestSubmission, ServiceType } from "./api";
 import { toast } from "sonner";
 
@@ -11,18 +12,31 @@ type Props = {
 export default function QuestList({ onBack, onQuestClick }: Props) {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [submissions, setSubmissions] = useState<QuestSubmission[]>([]);
-  const [filter, setFilter] = useState<ServiceType | "ALL">("ALL");
+  const [filter, setFilter] = useState<ServiceType | "ALL" | "LIVE_EVENTS">("ALL");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     loadData();
-  }, [filter]);
+  }, [filter, page]);
 
   const loadData = async () => {
     try {
       if (filter === "ALL") {
-        setQuests(await fetchQuests());
+        const res = await fetchQuests(page, 5);
+        setQuests(res.content);
+        setTotalPages(res.totalPages);
+      } else if (filter === "LIVE_EVENTS") {
+        // For live events, fetch all and filter since the backend doesn't have a specific endpoint yet
+        // In a real app, you'd add a dedicated endpoint to paginate this properly
+        const res = await fetchQuests(0, 100);
+        const live = res.content.filter(q => q.isLiveEventRelated);
+        setQuests(live);
+        setTotalPages(1);
       } else {
-        setQuests(await fetchQuestsByService(filter));
+        const res = await fetchQuestsByService(filter as ServiceType, page, 5);
+        setQuests(res.content);
+        setTotalPages(res.totalPages);
       }
       
       try {
@@ -46,15 +60,15 @@ export default function QuestList({ onBack, onQuestClick }: Props) {
         <button onClick={onBack} className="inline-flex items-center gap-2 rounded-full border-2 border-[#2b2b2b] bg-[#efe9da] px-4 py-2 font-['Space_Grotesk'] text-sm shadow-[3px_3px_0_0_rgba(43,43,43,0.35)] hover:-translate-x-1 transition-transform">
           <ArrowLeft className="h-4 w-4" strokeWidth={2.5} /> Back
         </button>
-        <div className="font-['Bebas_Neue'] text-3xl">ACTIVE QUESTS</div>
+        <div className="font-['Bebas_Neue'] text-3xl pr-24 lg:pr-32">ACTIVE QUESTS</div>
       </header>
 
       <div className="max-w-4xl mx-auto">
-        <div className="flex gap-4 mb-8 justify-center">
-          {["ALL", "ESPORT", "SPORT"].map((f) => (
+        <div className="flex flex-wrap gap-3 mb-8 justify-center">
+          {["ALL", "ESPORT", "SPORT", "LIVE_EVENTS"].map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f as any)}
+              onClick={() => { setFilter(f as any); setPage(0); }}
               className={`rounded-full border-2 border-[#2b2b2b] px-6 py-2 font-bold uppercase transition-all ${filter === f ? "bg-[#2b2b2b] text-[#efe9da]" : "bg-transparent"}`}
             >
               {f}
@@ -66,31 +80,12 @@ export default function QuestList({ onBack, onQuestClick }: Props) {
           {quests.map((q) => {
             const status = getStatus(q.id);
             return (
-              <div 
+              <EnhancedQuestCard 
                 key={q.id} 
-                onClick={() => onQuestClick(q.id)}
-                className="group cursor-pointer flex flex-col md:flex-row items-center justify-between rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#f7f0df] p-6 shadow-[8px_8px_0_0_rgba(43,43,43,0.22)] hover:shadow-[4px_4px_0_0_rgba(43,43,43,0.22)] hover:translate-y-1 transition-all"
-              >
-                <div className="flex-1">
-                  <span className="text-xs font-bold uppercase tracking-widest opacity-60">{q.serviceType}</span>
-                  <h3 className="font-['Bebas_Neue'] text-3xl mt-1">{q.title}</h3>
-                  <p className="opacity-80 mt-2">{q.description}</p>
-                </div>
-                <div className="flex items-center gap-6 mt-4 md:mt-0">
-                  <div className="text-center">
-                    <span className="block font-['Bebas_Neue'] text-4xl">{q.points}</span>
-                    <span className="text-xs uppercase tracking-widest font-bold">PTS</span>
-                  </div>
-                  
-                  <div className="text-sm font-bold w-24 text-center">
-                    {!status && <span className="opacity-50">UNCLAIMED</span>}
-                    {status === "CLAIMED" && <span className="text-orange-500">CLAIMED</span>}
-                    {status === "SUBMITTED" && <span className="text-blue-500">PENDING</span>}
-                    {status === "APPROVED" && <span className="text-green-600">APPROVED</span>}
-                    {status === "REJECTED" && <span className="text-red-500">REJECTED</span>}
-                  </div>
-                </div>
-              </div>
+                quest={q} 
+                status={status} 
+                onClick={onQuestClick} 
+              />
             );
           })}
           {quests.length === 0 && (
@@ -99,6 +94,26 @@ export default function QuestList({ onBack, onQuestClick }: Props) {
             </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button 
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-4 py-2 border-2 border-[#2b2b2b] rounded-full font-bold uppercase disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="font-bold">Page {page + 1} of {totalPages}</span>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="px-4 py-2 border-2 border-[#2b2b2b] rounded-full font-bold uppercase disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

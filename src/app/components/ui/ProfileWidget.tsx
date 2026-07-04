@@ -117,7 +117,7 @@ export function ProfileWidget({
                       <MenuButton 
                         icon={<Shield className="w-4 h-4" />} 
                         label="Admin Dashboard" 
-                        onClick={() => onNavigate("questboard-admin")} 
+                        onClick={() => onNavigate("admin-users")} 
                         variant="admin"
                       />
                       
