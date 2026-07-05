@@ -1,116 +1,194 @@
-import React, { useState } from 'react';
+// src/pages/esport/Tournaments.tsx
+import React, { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { type EsportPage } from './Sidebar';
 
-interface TournamentItem {
+// If your Spring Boot backend runs on a different origin/port than the
+// frontend dev server, set this via a Vite env var (VITE_API_BASE_URL).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+// NOTE: same assumption as before — TournamentStatus enum wasn't in your
+// uploaded files. Update these to match your actual enum values.
+const STATUS_OPTIONS = ['UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED'];
+const LIVE_STATUS = 'ONGOING'; // status value treated as "live" in the UI
+
+const FORMAT_OPTIONS: { value: 'SINGLE_ELIMINATION' | 'ROUND_ROBIN'; label: string }[] = [
+  { value: 'SINGLE_ELIMINATION', label: 'SINGLE ELIMINATION' },
+  { value: 'ROUND_ROBIN', label: 'ROUND ROBIN' },
+];
+
+const FORMAT_LABELS: Record<string, string> = {
+  SINGLE_ELIMINATION: 'SINGLE ELIMINATION',
+  ROUND_ROBIN: 'ROUND ROBIN',
+};
+
+const DEFAULT_LOGO =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuABVb0-s2YT8_Sn3yR1iArSu8tO6O6IFIr3Gvrd3SFcQP5soSnX-bO0GACiVY1-h5hdC89XbOKu1BEyK8r3ZCARPajoppK1UAX4pYZWOqiE-ciLC1ChKmAFpnGGCPfKK6KKNkQInfOlHfyH3ZMQI6WXJbobXXsgGtEHikmoO-PTiEEEV8QPayAyJgGvw9dklQcyUeziM3XLIdm0pnCE_j8CByOnXMbuGPUWFiiFWCpS3wkIxZ_Xr3nRO7ftrVP9n7eES2_QhnWpUjc';
+
+// Shape returned by GET /api/tournaments (matches Tournament.java)
+interface BackendTournament {
   id: string;
   name: string;
-  mode: string;
-  teamsCount: string;
+  game: string;
+  format: 'SINGLE_ELIMINATION' | 'ROUND_ROBIN';
   status: string;
-  logo: string;
-  isLive: boolean;
+  startDate: string;
+  endDate: string;
+  maxTeams: number;
+  teamIds: string[];
+  organizerId: string;
+}
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
 }
 
 interface TournamentsProps {
   isAdmin?: boolean;
+  onNavigate?: (page: EsportPage) => void;
 }
 
-const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
-  const [tournaments, setTournaments] = useState<TournamentItem[]>([
-    {
-      id: 'SL-2026-A1',
-      name: 'SHADOW PROTOCOL',
-      mode: '5V5 BATTLE ROYALE',
-      teamsCount: '32 / 32',
-      status: 'SEMIS ROUND 2',
-      logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABVb0-s2YT8_Sn3yR1iArSu8tO6O6IFIr3Gvrd3SFcQP5soSnX-bO0GACiVY1-h5hdC89XbOKu1BEyK8r3ZCARPajoppK1UAX4pYZWOqiE-ciLC1ChKmAFpnGGCPfKK6KKNkQInfOlHfyH3ZMQI6WXJbobXXsgGtEHikmoO-PTiEEEV8QPayAyJgGvw9dklQcyUeziM3XLIdm0pnCE_j8CByOnXMbuGPUWFiiFWCpS3wkIxZ_Xr3nRO7ftrVP9n7eES2_QhnWpUjc',
-      isLive: true
-    },
-    {
-      id: 'SL-2026-B4',
-      name: 'UNDERGROUND CUP',
-      mode: '1V1 DUELS',
-      teamsCount: '64 / 64',
-      status: 'STARTING IN 12H',
-      logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBSk5GpMB0RfStDXa2cTPmJIZpV5p6hQh9F0QX71E_t_IcFc1sX4EzePxVcabx_F6FuAOm4NQpgZ-CMT7o7D59td_5dAJeVOtVyss--YZSpraclYl0KNNdmGRL5KStph_6Y9V6WjGJL99o57No3LfBORaYeWyYKFElO0NFc6NZZ5ShPhBW_aVAvTvQxjJSb-gWTWleb3kxabKSY0ApKjqJMxuC_1wtiglBMRAqlITbqgRIDrEU_4R9ImMUGLZOuaeOwYfYyk1p9VY8',
-      isLive: false
-    },
-    {
-      id: 'SL-2026-C2',
-      name: 'CRIMSON LEAGUE',
-      mode: 'KING OF HILL',
-      teamsCount: '16 / 16',
-      status: 'FINAL MATCH',
-      logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDLx8NGkr01xnU4T8pTi07jtXwTn7290WJNhmB6X0-MqWxGjnmdm4xDWXSMOmPLm1hKIFKyNQCZjguPVSbqqHWiAWEtMm5k9QAo7RnL31eyZATklDY8Ix7gGzgqvduFs0u1oItSnAMQqZJ6gJQfTQooEpNUlXp2KOpXaq8NRiZ3CBFAcdguWdUnHZieFveEVW9FTHKBG_WGwr6DWadjIq8p2QzD_eHP3mCJ3OdiZj-JbLswAdUdgSyJ-xNDiRD0pVL6x_YVu6Hqak4',
-      isLive: true
-    }
-  ]);
+// datetime-local inputs need "YYYY-MM-DDTHH:mm" — this strips seconds/zone.
+// Displays the value in the browser's local time; adjust here if you need
+// to preserve the exact server-side zone instead.
+const toDatetimeLocalValue = (iso: string) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false, onNavigate }) => {
+  const [tournaments, setTournaments] = useState<BackendTournament[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // Form states
+  // Edit form state (mirrors TournamentRequest.java)
   const [name, setName] = useState('');
-  const [mode, setMode] = useState('');
-  const [teamsCount, setTeamsCount] = useState('16 / 16');
-  const [status, setStatus] = useState('');
-  const [isLive, setIsLive] = useState(false);
+  const [game, setGame] = useState('');
+  const [format, setFormat] = useState<'SINGLE_ELIMINATION' | 'ROUND_ROBIN'>('SINGLE_ELIMINATION');
+  const [status, setStatus] = useState('UPCOMING');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [maxTeams, setMaxTeams] = useState(16);
 
-  const openCreateModal = () => {
-    setName('');
-    setMode('');
-    setTeamsCount('16 / 16');
-    setStatus('REGISTERING');
-    setIsLive(false);
-    setEditingId(null);
-    setShowModal(true);
+  const fetchTournaments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tournaments?size=50`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to load tournaments (status ${res.status})`);
+      }
+      const data: PageResponse<BackendTournament> = await res.json();
+      setTournaments(data.content ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load tournaments.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTournaments();
+  }, [fetchTournaments]);
+
+  const goToCreateTournament = () => {
+    onNavigate?.('esport-create-tournament');
   };
 
-  const openEditModal = (t: TournamentItem) => {
+  const openEditModal = (t: BackendTournament) => {
     setName(t.name);
-    setMode(t.mode);
-    setTeamsCount(t.teamsCount);
+    setGame(t.game);
+    setFormat(t.format);
     setStatus(t.status);
-    setIsLive(t.isLive);
+    setStartDate(toDatetimeLocalValue(t.startDate));
+    setEndDate(toDatetimeLocalValue(t.endDate));
+    setMaxTeams(t.maxTeams);
     setEditingId(t.id);
     setShowModal(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!editingId) return;
 
-    if (editingId) {
-      // Update
-      setTournaments(prev => prev.map(t => t.id === editingId ? {
-        ...t,
-        name: name.toUpperCase(),
-        mode: mode.toUpperCase(),
-        teamsCount,
-        status: status.toUpperCase(),
-        isLive
-      } : t));
-    } else {
-      // Create
-      const newId = `SL-2026-${Math.random().toString(36).substr(2, 2).toUpperCase()}${Math.floor(Math.random() * 9) + 1}`;
-      const newT: TournamentItem = {
-        id: newId,
-        name: name.toUpperCase(),
-        mode: mode.toUpperCase(),
-        teamsCount,
-        status: status.toUpperCase(),
-        logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABVb0-s2YT8_Sn3yR1iArSu8tO6O6IFIr3Gvrd3SFcQP5soSnX-bO0GACiVY1-h5hdC89XbOKu1BEyK8r3ZCARPajoppK1UAX4pYZWOqiE-ciLC1ChKmAFpnGGCPfKK6KKNkQInfOlHfyH3ZMQI6WXJbobXXsgGtEHikmoO-PTiEEEV8QPayAyJgGvw9dklQcyUeziM3XLIdm0pnCE_j8CByOnXMbuGPUWFiiFWCpS3wkIxZ_Xr3nRO7ftrVP9n7eES2_QhnWpUjc',
-        isLive: isLive
-      };
-      setTournaments([...tournaments, newT]);
+    if (!name.trim() || !game.trim() || !startDate || !endDate) {
+      toast.error('Please fill in all required fields.');
+      return;
     }
-    setShowModal(false);
+    if (maxTeams < 2) {
+      toast.error('Max teams must be at least 2.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tournaments/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name,
+          game,
+          format,
+          status,
+          startDate: new Date(startDate).toISOString(),
+          endDate: new Date(endDate).toISOString(),
+          maxTeams,
+        }),
+      });
+
+      if (!res.ok) {
+        let message = `Failed to update tournament (status ${res.status})`;
+        try {
+          const errBody = await res.json();
+          message = errBody?.message ?? message;
+        } catch {
+          // ignore non-JSON error body
+        }
+        throw new Error(message);
+      }
+
+      toast.success('Tournament updated.');
+      setShowModal(false);
+      setEditingId(null);
+      await fetchTournaments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update tournament.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Delete this tournament?')) {
-      setTournaments(prev => prev.filter(t => t.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this tournament?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tournaments/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to delete tournament (status ${res.status})`);
+      }
+
+      toast.success('Tournament deleted.');
+      setTournaments((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete tournament.');
     }
   };
+
+  const liveCount = tournaments.filter((t) => t.status === LIVE_STATUS).length;
 
   return (
     <div className="space-y-12 select-none subpixel-antialiased text-left">
@@ -122,7 +200,7 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
             <span className="material-symbols-outlined text-[var(--e-accent)] text-lg">emoji_events</span>
           </div>
           <h3 className="font-display text-5xl font-extrabold text-on-surface mb-1 leading-none">
-            {tournaments.filter(t => t.isLive).length.toString().padStart(2, '0')}
+            {liveCount.toString().padStart(2, '0')}
           </h3>
           <div className="mt-4 h-1.5 bg-surface-variant w-full relative overflow-hidden">
             <div className="absolute inset-y-0 left-0 bg-primary w-2/3"></div>
@@ -160,8 +238,8 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
             <p className="font-mono text-[9px] text-[var(--e-text-muted)] font-bold uppercase mt-1">ACTIVE TOURNAMENT MONITORING</p>
           </div>
           {isAdmin && (
-            <button 
-              onClick={openCreateModal}
+            <button
+              onClick={goToCreateTournament}
               className="bg-primary text-black px-6 py-3 font-display tracking-wider text-sm flex items-center gap-2 hover:scale-95 transition-transform font-extrabold"
             >
               <span className="material-symbols-outlined text-sm">add</span>CREATE TOURNAMENT
@@ -169,7 +247,7 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
           )}
         </div>
         <div className="bg-[var(--e-card-bg)] border border-[var(--e-border)] relative overflow-hidden">
-          <div className="noise-overlay absolute inset-0"></div>
+          <div className="noise-overlay absolute inset-0 pointer-events-none"></div>
           <table className="w-full text-left border-collapse font-mono text-xs">
             <thead className="bg-[var(--e-card-bg-2)] border-b border-[var(--e-border)]">
               <tr>
@@ -181,60 +259,82 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--e-border)]/35">
-              {tournaments.map((t, idx) => (
-                <tr key={idx} className="hover:bg-[var(--e-surface-container-low)]/50 transition-colors">
-                  <td className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-black border border-primary p-1">
-                        <img className="w-full h-full object-cover" src={t.logo} alt={t.name} />
-                      </div>
-                      <div>
-                        <p className="font-display text-2xl text-on-surface uppercase leading-none font-bold">{t.name}</p>
-                        <p className="font-mono text-[9px] text-[var(--e-text-dim)] font-bold mt-1">ID: {t.id}</p>
-                      </div>
-                    </div>
+              {loading && (
+                <tr>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-6 text-center text-[var(--e-text-muted)] font-mono text-xs">
+                    LOADING TOURNAMENTS...
                   </td>
-                  <td className="p-6">
-                    <span className="font-mono text-[10px] px-2.5 py-1 bg-[var(--e-card-bg-2)] border border-[var(--e-border)] font-bold text-[var(--e-text)]">{t.mode}</span>
+                </tr>
+              )}
+
+              {!loading && tournaments.length === 0 && (
+                <tr>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-6 text-center text-[var(--e-text-muted)] font-mono text-xs">
+                    NO TOURNAMENTS FOUND
                   </td>
-                  <td className="p-6">
-                    <p className="font-mono text-xs font-bold text-on-surface">{t.teamsCount}</p>
-                  </td>
-                  <td className="p-6">
-                    <div className={`flex items-center gap-2 font-bold ${t.isLive ? 'text-primary' : 'text-[var(--e-text-muted)]'}`}>
-                      {t.isLive ? (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                          <span className="font-mono text-xs uppercase">{t.status}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-sm">schedule</span>
-                          <span className="font-mono text-xs uppercase">{t.status}</span>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  {isAdmin && (
-                    <td className="p-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => openEditModal(t)}
-                          className="p-2 hover:bg-secondary-container transition-colors material-symbols-outlined text-[var(--e-text-muted)] hover:text-primary text-base"
-                        >
-                          edit
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(t.id)}
-                          className="p-2 hover:bg-error-container transition-colors material-symbols-outlined text-[var(--e-text-muted)] hover:text-primary text-base"
-                        >
-                          delete
-                        </button>
+                </tr>
+              )}
+
+              {!loading && tournaments.map((t) => {
+                const isLive = t.status === LIVE_STATUS;
+                const teamsCount = `${t.teamIds?.length ?? 0} / ${t.maxTeams}`;
+                const modeLabel = `${t.game} • ${FORMAT_LABELS[t.format] ?? t.format}`;
+
+                return (
+                  <tr key={t.id} className="hover:bg-[var(--e-surface-container-low)]/50 transition-colors">
+                    <td className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-black border border-primary p-1">
+                          <img className="w-full h-full object-cover" src={DEFAULT_LOGO} alt={t.name} />
+                        </div>
+                        <div>
+                          <p className="font-display text-2xl text-on-surface uppercase leading-none font-bold">{t.name}</p>
+                          <p className="font-mono text-[9px] text-[var(--e-text-dim)] font-bold mt-1">ID: {t.id}</p>
+                        </div>
                       </div>
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="p-6">
+                      <span className="font-mono text-[10px] px-2.5 py-1 bg-[var(--e-card-bg-2)] border border-[var(--e-border)] font-bold text-[var(--e-text)]">{modeLabel}</span>
+                    </td>
+                    <td className="p-6">
+                      <p className="font-mono text-xs font-bold text-on-surface">{teamsCount}</p>
+                    </td>
+                    <td className="p-6">
+                      <div className={`flex items-center gap-2 font-bold ${isLive ? 'text-primary' : 'text-[var(--e-text-muted)]'}`}>
+                        {isLive ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                            <span className="font-mono text-xs uppercase">{t.status}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-sm">schedule</span>
+                            <span className="font-mono text-xs uppercase">{t.status}</span>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                    {isAdmin && (
+                      <td className="p-6 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(t)}
+                            className="p-2 hover:bg-secondary-container transition-colors material-symbols-outlined text-[var(--e-text-muted)] hover:text-primary text-base"
+                          >
+                            edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(t.id)}
+                            className="p-2 hover:bg-error-container transition-colors material-symbols-outlined text-[var(--e-text-muted)] hover:text-primary text-base"
+                          >
+                            delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -297,18 +397,18 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
         </div>
       </div>
 
-      {/* CREATE/EDIT MODAL */}
+      {/* EDIT MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-[var(--e-card-bg)] border-2 border-primary p-8 max-w-md w-full relative text-left">
             <h3 className="font-display text-3xl text-primary mb-6 uppercase tracking-wider font-bold">
-              {editingId ? 'Edit Tournament' : 'Create Tournament'}
+              Edit Tournament
             </h3>
             <form onSubmit={handleSave} className="space-y-4 font-mono text-xs font-bold">
               <div>
                 <label className="block text-[var(--e-text-muted)] uppercase mb-1">Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface uppercase outline-none focus:border-primary font-bold"
@@ -316,61 +416,89 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
                 />
               </div>
               <div>
-                <label className="block text-[var(--e-text-muted)] uppercase mb-1">Mode</label>
-                <input 
-                  type="text" 
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value)}
-                  placeholder="e.g. 5V5 BATTLE ROYALE"
+                <label className="block text-[var(--e-text-muted)] uppercase mb-1">Game</label>
+                <input
+                  type="text"
+                  value={game}
+                  onChange={(e) => setGame(e.target.value)}
+                  placeholder="e.g. APEX PROTOCOL"
                   className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface uppercase outline-none focus:border-primary font-bold"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[var(--e-text-muted)] uppercase mb-1">Teams</label>
-                  <input 
-                    type="text" 
-                    value={teamsCount}
-                    onChange={(e) => setTeamsCount(e.target.value)}
+                  <label className="block text-[var(--e-text-muted)] uppercase mb-1">Format</label>
+                  <select
+                    value={format}
+                    onChange={(e) => setFormat(e.target.value as 'SINGLE_ELIMINATION' | 'ROUND_ROBIN')}
                     className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface outline-none focus:border-primary font-bold"
+                  >
+                    {FORMAT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[var(--e-text-muted)] uppercase mb-1">Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface outline-none focus:border-primary font-bold"
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[var(--e-text-muted)] uppercase mb-1">Start Date</label>
+                  <input
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface outline-none focus:border-primary font-bold [color-scheme:dark]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[var(--e-text-muted)] uppercase mb-1">Status</label>
-                  <input 
-                    type="text" 
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface uppercase outline-none focus:border-primary font-bold"
+                  <label className="block text-[var(--e-text-muted)] uppercase mb-1">End Date</label>
+                  <input
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface outline-none focus:border-primary font-bold [color-scheme:dark]"
                     required
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2 pt-2">
-                <input 
-                  type="checkbox" 
-                  id="isLive"
-                  checked={isLive}
-                  onChange={(e) => setIsLive(e.target.checked)}
-                  className="bg-[var(--e-card-bg-2)] border border-[var(--e-border)] text-primary focus:ring-0 cursor-pointer"
+              <div>
+                <label className="block text-[var(--e-text-muted)] uppercase mb-1">Max Teams</label>
+                <input
+                  type="number"
+                  min={2}
+                  value={maxTeams}
+                  onChange={(e) => setMaxTeams(Number(e.target.value))}
+                  className="w-full bg-[var(--e-card-bg-2)] border border-[var(--e-border)] p-3 text-on-surface outline-none focus:border-primary font-bold"
+                  required
                 />
-                <label htmlFor="isLive" className="text-[var(--e-text-muted)] uppercase cursor-pointer">Live Tournament</label>
               </div>
               <div className="flex gap-4 pt-4 border-t border-[var(--e-border)]/45">
-                <button 
-                  type="button" 
-                  onClick={() => setShowModal(false)}
+                <button
+                  type="button"
+                  onClick={() => { setShowModal(false); setEditingId(null); }}
                   className="flex-1 py-3.5 border border-[var(--e-border)] text-on-surface hover:bg-[var(--e-card-bg-2)] transition-colors font-display text-sm font-extrabold tracking-wider"
                 >
                   CANCEL
                 </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-3.5 bg-primary text-black font-extrabold hover:bg-primary/95 transition-colors font-display text-sm tracking-wider"
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3.5 bg-primary text-black font-extrabold hover:bg-primary/95 transition-colors font-display text-sm tracking-wider disabled:opacity-60"
                 >
-                  SAVE
+                  {saving ? 'SAVING...' : 'SAVE'}
                 </button>
               </div>
             </form>
@@ -382,4 +510,3 @@ const Tournaments: React.FC<TournamentsProps> = ({ isAdmin = false }) => {
 };
 
 export default Tournaments;
-

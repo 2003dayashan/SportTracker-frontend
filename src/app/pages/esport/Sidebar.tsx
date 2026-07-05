@@ -6,6 +6,7 @@ export type EsportPage =
   | 'esport-home'
   | 'esport-dashboard'
   | 'esport-tournaments'
+  | 'esport-create-tournament'
   | 'esport-teams'
   | 'esport-players'
   | 'esport-matches'
@@ -35,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, onExit }) =>
     { name: 'HOME', path: 'esport-home' },
     { name: 'DASHBOARD', path: 'esport-dashboard' },
     { name: 'TOURNAMENT', path: 'esport-tournaments' },
+    { name: 'CREATE TOURNAMENT', path: 'esport-create-tournament' },
     { name: 'TEAMS', path: 'esport-teams' },
     { name: 'PLAYERS', path: 'esport-players' },
     { name: 'MATCHES', path: 'esport-matches' },

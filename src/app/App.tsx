@@ -17,6 +17,7 @@ import { type EsportPage } from "./pages/esport/Sidebar";
 import EsportHome from "./pages/esport/Home";
 import EsportDashboard from "./pages/esport/Dashboard";
 import EsportTournaments from "./pages/esport/Tournaments";
+import EsportCreateTournament from "./pages/esport/CreateTournament";
 import EsportTeams from "./pages/esport/Teams";
 import EsportPlayers from "./pages/esport/Players";
 import EsportMatches from "./pages/esport/Matches";
@@ -54,9 +55,9 @@ type FootballPage =
 type QuestboardPage = "questboard-home" | "questboard-list" | "questboard-detail" | "questboard-admin" | "questboard-profile" | "questboard-leaderboard" | "questboard-dashboard";
 
 // App.tsx top — Page type
-type Page = 
+type Page =
   | "landing" | "doors" | "login" | "reset-password"
-  | EsportPage | "questboard"   
+  | EsportPage | "questboard"
   | FootballPage
   | QuestboardPage
   | "user-profile" | "admin-profile" | "admin-users";
@@ -119,9 +120,9 @@ export default function App() {
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
   const isAdmin = isLoggedIn && (
-  currentUser?.role === "ADMIN" ||
-  currentUser?.role === "GUILD_MASTER"
-);
+    currentUser?.role === "ADMIN" ||
+    currentUser?.role === "GUILD_MASTER"
+  );
 
   // Check URL for reset token on page load
   useEffect(() => {
@@ -134,63 +135,63 @@ export default function App() {
     }
   }, []);
 
-    // Normalize role strings from DB (handles manual edits like "Guild user")
-    const normalizeRole = (role: string | undefined | null): string => {
-      if (!role) return "USER";
-      const r = role.toUpperCase().trim();
-      if (r === "ADMIN") return "ADMIN";
-      if (r === "GUILD_MASTER") return "GUILD_MASTER";
-      // Handle variations from manual DB edits
-      if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
-      return "USER";
-    };
+  // Normalize role strings from DB (handles manual edits like "Guild user")
+  const normalizeRole = (role: string | undefined | null): string => {
+    if (!role) return "USER";
+    const r = role.toUpperCase().trim();
+    if (r === "ADMIN") return "ADMIN";
+    if (r === "GUILD_MASTER") return "GUILD_MASTER";
+    // Handle variations from manual DB edits
+    if (r.includes("ADMIN") || r.includes("GUILD") || r.includes("MASTER")) return "ADMIN";
+    return "USER";
+  };
 
-    // Backend roles array → single role string
-    const normalizeRoleFromArray = (roles: string[] | undefined | null): string => {
-      if (!roles || roles.length === 0) return "USER";
-      const combined = roles.join(",").toUpperCase();
-      if (combined.includes("ADMIN") || combined.includes("GUILD_MASTER") || combined.includes("MASTER")) return "ADMIN";
-      return "USER";
-    };
+  // Backend roles array → single role string
+  const normalizeRoleFromArray = (roles: string[] | undefined | null): string => {
+    if (!roles || roles.length === 0) return "USER";
+    const combined = roles.join(",").toUpperCase();
+    if (combined.includes("ADMIN") || combined.includes("GUILD_MASTER") || combined.includes("MASTER")) return "ADMIN";
+    return "USER";
+  };
 
-    const refreshUser = async () => {
-      try {
-        let userFound = false;
-        let userData = null;
+  const refreshUser = async () => {
+    try {
+      let userFound = false;
+      let userData = null;
 
-        const mainRes = await fetch("/api/auth/me", { credentials: "include" });
-        if (mainRes.ok) {
-          const data = await mainRes.json();
-          if (data?.id) {
-            userFound = true;
-            userData = data;
-          }
+      const mainRes = await fetch("/api/auth/me", { credentials: "include" });
+      if (mainRes.ok) {
+        const data = await mainRes.json();
+        if (data?.id) {
+          userFound = true;
+          userData = data;
         }
-
-        if (userFound && userData) {
-          const roleSource = userData.roles || (userData.role ? [userData.role] : []);
-          userData.role = normalizeRoleFromArray(roleSource);
-          setIsLoggedIn(true);
-          setCurrentUser(userData);
-        }
-      } catch (e) {
-        console.error("Session restore failed", e);
       }
-    };
 
-    // Session restore on refresh
-    useEffect(() => {
-      refreshUser();
-    }, []);
+      if (userFound && userData) {
+        const roleSource = userData.roles || (userData.role ? [userData.role] : []);
+        userData.role = normalizeRoleFromArray(roleSource);
+        setIsLoggedIn(true);
+        setCurrentUser(userData);
+      }
+    } catch (e) {
+      console.error("Session restore failed", e);
+    }
+  };
 
-    // Save page changes to sessionStorage for reload persistence
-    useEffect(() => {
-      sessionStorage.setItem("currentPage", page);
-    }, [page]);
+  // Session restore on refresh
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
+  // Save page changes to sessionStorage for reload persistence
+  useEffect(() => {
+    sessionStorage.setItem("currentPage", page);
+  }, [page]);
 
   const goLogin = () => setPage("login");
   const logout = () => {
-    fetch("/api/auth/signout", { method: "POST", credentials: "include" }).catch(() => {});
+    fetch("/api/auth/signout", { method: "POST", credentials: "include" }).catch(() => { });
     setIsLoggedIn(false);
     setCurrentUser(null);
     setPage("landing");
@@ -297,7 +298,8 @@ export default function App() {
             >
               {page === "esport-home" && <EsportHome />}
               {page === "esport-dashboard" && <EsportDashboard />}
-              {page === "esport-tournaments" && <EsportTournaments isAdmin={isAdmin} />}
+              {page === "esport-tournaments" && (<EsportTournaments isAdmin={isAdmin} onNavigate={(p) => setPage(p)} />)}
+              {page === "esport-create-tournament" && <EsportCreateTournament />}
               {page === "esport-teams" && <EsportTeams isAdmin={isAdmin} />}
               {page === "esport-players" && <EsportPlayers isAdmin={isAdmin} />}
               {page === "esport-matches" && <EsportMatches />}
@@ -377,40 +379,40 @@ export default function App() {
         )}
 
         {/* FOOTBALL MODULE ROUTES */}
-          {page === "football-home" && (
-            <Screen key="football-home">
-              <FootballHome
-                isLoggedIn={isLoggedIn}
-                onLeagues={() => setPage("football-leagues")}
-                onClubs={() => setPage("football-clubs")}
-                onFixtures={() => {
-                  setSelectedLeagueId(null);
-                  setPage("football-fixtures");
-                }}
-                onStandings={() => setPage("football-leagues")}
-                
-                onWorldCup={() => setPage("football-worldcup")}
-                onBackToDoors={() => setPage(isLoggedIn ? "doors" : "login")}
-                onLogout={logout}
-                
-              />
-            </Screen>
-          )}
+        {page === "football-home" && (
+          <Screen key="football-home">
+            <FootballHome
+              isLoggedIn={isLoggedIn}
+              onLeagues={() => setPage("football-leagues")}
+              onClubs={() => setPage("football-clubs")}
+              onFixtures={() => {
+                setSelectedLeagueId(null);
+                setPage("football-fixtures");
+              }}
+              onStandings={() => setPage("football-leagues")}
+
+              onWorldCup={() => setPage("football-worldcup")}
+              onBackToDoors={() => setPage(isLoggedIn ? "doors" : "login")}
+              onLogout={logout}
+
+            />
+          </Screen>
+        )}
         {page === "football-leagues" && (
           <Screen key="football-leagues">
             <Leagues
               isAdmin={isAdmin}
               onBack={() => setPage("football-home")}
-              onViewStandings={(id, name) => {          
+              onViewStandings={(id, name) => {
                 setSelectedLeagueId(id);
-                setSelectedLeagueName(name);           
+                setSelectedLeagueName(name);
                 setPage("football-standings");
               }}
               onViewFixtures={(id) => {
                 setSelectedLeagueId(id);
                 setPage("football-fixtures");
               }}
-            />      
+            />
           </Screen>
         )}
         {page === "football-clubs" && (
@@ -462,27 +464,27 @@ export default function App() {
         )}
         {page === "user-profile" && (
           <Screen key="user-profile">
-            <UserProfilePage 
-              currentUser={currentUser} 
-              onBack={() => setPage("doors")} 
+            <UserProfilePage
+              currentUser={currentUser}
+              onBack={() => setPage("doors")}
               onProfileUpdate={refreshUser}
             />
           </Screen>
         )}
         {page === "admin-profile" && (
           <Screen key="admin-profile">
-            <AdminProfilePage 
-              currentUser={currentUser} 
-              onBack={() => setPage("doors")} 
+            <AdminProfilePage
+              currentUser={currentUser}
+              onBack={() => setPage("doors")}
               onProfileUpdate={refreshUser}
             />
           </Screen>
         )}
         {page === "admin-users" && (
           <Screen key="admin-users">
-            <AdminUserManagementPage 
-              currentUser={currentUser} 
-              onBack={() => setPage("doors")} 
+            <AdminUserManagementPage
+              currentUser={currentUser}
+              onBack={() => setPage("doors")}
             />
           </Screen>
         )}

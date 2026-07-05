@@ -14,6 +14,23 @@ interface CreateTournamentProps {
   onCreated?: () => void;
 }
 
+// If your Spring Boot backend runs on a different origin/port than the
+// frontend dev server, set this to that origin (e.g. via a Vite env var).
+// If frontend and backend are served from the same origin (or you have a
+// dev-server proxy set up for /api), you can leave this as an empty string.
+const API_BASE_URL = 'http://localhost:8080';
+
+// NOTE: TournamentStatus wasn't included in your uploaded files, so this is
+// a best guess based on how it's used elsewhere (ONGOING, COMPLETED appear
+// in TournamentService). Update this list (and the default below) to match
+// your actual enum values.
+const STATUS_OPTIONS = ['UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED'];
+
+const FORMAT_OPTIONS = [
+  { value: 'SINGLE_ELIMINATION', label: 'SINGLE ELIMINATION' },
+  { value: 'ROUND_ROBIN', label: 'ROUND ROBIN' },
+];
+
 const ENVIRONMENTS: TacticalEnvironment[] = [
   {
     id: 'the-vault',
@@ -45,8 +62,12 @@ const sectionVariants = {
 
 const CreateTournament: React.FC<CreateTournamentProps> = ({ onCreated }) => {
   const [name, setName] = useState('');
+  const [game, setGame] = useState('');
+  const [format, setFormat] = useState<'SINGLE_ELIMINATION' | 'ROUND_ROBIN'>('SINGLE_ELIMINATION');
+  const [status, setStatus] = useState('UPCOMING');
   const [participantLimit, setParticipantLimit] = useState(16);
   const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [prizePool, setPrizePool] = useState(5000);
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>(['the-vault', 'track-09']);
   const [hardcoreMode, setHardcoreMode] = useState(true);
@@ -59,18 +80,71 @@ const CreateTournament: React.FC<CreateTournamentProps> = ({ onCreated }) => {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!name.trim()) {
       toast.error('Tournament name is required.');
       return;
     }
+    if (!game.trim()) {
+      toast.error('Game is required.');
+      return;
+    }
+    if (!startDate) {
+      toast.error('Start date is required.');
+      return;
+    }
+    if (!endDate) {
+      toast.error('End date is required.');
+      return;
+    }
+    if (participantLimit < 2) {
+      toast.error('Participant limit must be at least 2.');
+      return;
+    }
+
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      toast.success(`"${name.toUpperCase()}" INITIALIZED — ${selectedEnvs.length} arenas locked`);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/tournaments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Needed because the backend reads USER_ID from the HttpSession
+        // (session cookie), so the request must carry credentials.
+        credentials: 'include',
+        body: JSON.stringify({
+          name,
+          game,
+          format,
+          status,
+          startDate: new Date(startDate).toISOString(),
+          endDate: new Date(endDate).toISOString(),
+          maxTeams: participantLimit,
+        }),
+      });
+
+      if (!response.ok) {
+        let message = `Request failed with status ${response.status}`;
+        try {
+          const errBody = await response.json();
+          message = errBody?.message ?? message;
+        } catch {
+          // response wasn't JSON, ignore
+        }
+        throw new Error(message);
+      }
+
+      const created = await response.json();
+      toast.success(`"${created.name?.toUpperCase() ?? name.toUpperCase()}" INITIALIZED — ${selectedEnvs.length} arenas locked`);
       onCreated?.();
-    }, 700);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create tournament.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -100,6 +174,41 @@ const CreateTournament: React.FC<CreateTournamentProps> = ({ onCreated }) => {
                 className="w-full bg-transparent border border-[var(--e-border)] p-3.5 text-on-surface outline-none focus:border-primary transition-colors placeholder:text-[var(--e-text-dim)]"
               />
             </Field>
+            <Field label="GAME">
+              <input
+                type="text"
+                placeholder="e.g. APEX PROTOCOL"
+                value={game}
+                onChange={(e) => setGame(e.target.value)}
+                className="w-full bg-transparent border border-[var(--e-border)] p-3.5 text-on-surface outline-none focus:border-primary transition-colors placeholder:text-[var(--e-text-dim)]"
+              />
+            </Field>
+            <Field label="FORMAT">
+              <select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as 'SINGLE_ELIMINATION' | 'ROUND_ROBIN')}
+                className="w-full bg-transparent border border-[var(--e-border)] p-3.5 text-on-surface outline-none focus:border-primary transition-colors"
+              >
+                {FORMAT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value} className="bg-black">
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="STATUS">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full bg-transparent border border-[var(--e-border)] p-3.5 text-on-surface outline-none focus:border-primary transition-colors"
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt} className="bg-black">
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="PARTICIPANT LIMIT" suffix="SLOTS">
               <input
                 type="number"
@@ -114,6 +223,14 @@ const CreateTournament: React.FC<CreateTournamentProps> = ({ onCreated }) => {
                 type="datetime-local"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-transparent border border-[var(--e-border)] p-3.5 text-on-surface outline-none focus:border-primary transition-colors [color-scheme:dark]"
+              />
+            </Field>
+            <Field label="END DATE & TIME">
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
                 className="w-full bg-transparent border border-[var(--e-border)] p-3.5 text-on-surface outline-none focus:border-primary transition-colors [color-scheme:dark]"
               />
             </Field>
@@ -142,9 +259,8 @@ const CreateTournament: React.FC<CreateTournamentProps> = ({ onCreated }) => {
                   onClick={() => toggleEnv(env.id)}
                   whileHover={{ y: -3 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`relative text-left border overflow-hidden group transition-colors ${
-                    active ? 'border-primary' : 'border-[var(--e-border)]'
-                  }`}
+                  className={`relative text-left border overflow-hidden group transition-colors ${active ? 'border-primary' : 'border-[var(--e-border)]'
+                    }`}
                 >
                   <div className="aspect-video w-full overflow-hidden bg-black/40 grayscale">
                     <motion.img
@@ -163,11 +279,10 @@ const CreateTournament: React.FC<CreateTournamentProps> = ({ onCreated }) => {
                       </div>
                     </div>
                     <span
-                      className={`h-5 w-5 flex items-center justify-center border shrink-0 transition-colors ${
-                        active
+                      className={`h-5 w-5 flex items-center justify-center border shrink-0 transition-colors ${active
                           ? 'bg-primary border-primary text-black'
                           : 'border-[var(--e-border)] text-transparent'
-                      }`}
+                        }`}
                     >
                       <AnimatePresence>
                         {active && (
@@ -290,9 +405,8 @@ const ProtocolRow: React.FC<{
       type="button"
       onClick={() => onChange(!checked)}
       aria-pressed={checked}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-        checked ? 'bg-primary' : 'bg-[var(--e-surface-container-highest)]'
-      }`}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-[var(--e-surface-container-highest)]'
+        }`}
     >
       <motion.span
         className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-black shadow-md"
@@ -304,4 +418,3 @@ const ProtocolRow: React.FC<{
 );
 
 export default CreateTournament;
-
