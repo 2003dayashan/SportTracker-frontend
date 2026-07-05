@@ -578,3 +578,4 @@ This front-end is a playful, video-driven, line-art e-sport experience. The most
 4. Show only one auth action at a time based on login state.
 5. Show only one auth form at a time on the login page.
 6. Preserve the cream/black sketch identity across every page.
+ama edit
