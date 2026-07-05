@@ -516,16 +516,31 @@ function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout, onFootball }: {
 }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#efe9da] text-[#2b2b2b]">
+      {/* Auto-loading progress bar themed to the site */}
+      <motion.div 
+        className="absolute top-0 left-0 h-1.5 bg-[#2b2b2b] z-50 origin-left"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 2.5, ease: "easeInOut" }}
+      />
       <InteractiveBackground onPortalEnd={onEnterArena} />
       <div className="pointer-events-none absolute inset-0 z-30 bg-gradient-to-r from-[#efe9da]/85 via-[#efe9da]/25 to-transparent" />
       <div className="pointer-events-none relative z-40 mx-auto flex min-h-screen max-w-[1320px] flex-col px-6 py-6 lg:px-12">
-        <header className="flex items-center justify-between">
+        <motion.header 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex items-center justify-between"
+        >
           <Logo />
           <div className="pointer-events-auto flex items-center gap-3">
             <nav className="pointer-events-auto hidden items-center gap-7 font-['Space_Grotesk'] text-sm md:flex mr-24 lg:mr-32">
-              {["Teams", "Matches", "Arena", "Football", "About"].map((item) => (
-                <a
+              {["Teams", "Matches", "Arena", "Football", "About"].map((item, index) => (
+                <motion.a
                   key={item}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 + (index * 0.1) }}
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
@@ -533,27 +548,46 @@ function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout, onFootball }: {
                   className="relative uppercase tracking-[0.14em] opacity-80 transition-opacity hover:opacity-100"
                 >
                   {item}
-                </a>
+                </motion.a>
               ))}
             </nav>
           </div>
-        </header>
+        </motion.header>
         <main className="flex flex-1 items-center">
           <motion.div
-            initial={{ opacity: 0, x: -24 }}
+            initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
             className="max-w-md"
           >
             <h1 className="mt-6 font-['Bebas_Neue'] text-[clamp(64px,9vw,132px)] leading-[0.9] tracking-[0.01em]">STICK<br />LEAGUE</h1>
-            <p className="mt-2 -rotate-2 font-['Caveat'] text-[28px] leading-[1.1]">where doodles go pro.</p>
-            <p className="mt-6 max-w-sm font-['Space_Grotesk'] text-base leading-[1.6] opacity-80">The whole scene is alive — kick the football to watch our star player juggle, tap again to switch the trick, or step through the portal into the arena.</p>
+            <motion.p 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 1.2, duration: 0.8 }}
+              className="mt-2 -rotate-2 font-['Caveat'] text-[28px] leading-[1.1]"
+            >
+              The Gamified Sports Tracker.
+            </motion.p>
+            <motion.p 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 1.5, duration: 0.8 }}
+              className="mt-6 max-w-sm font-['Space_Grotesk'] text-base leading-[1.6] opacity-80"
+            >
+              Level up your sports journey. Complete real-world quests, dominate the esports leaderboards, and track global football fixtures. Tap the football below to interact with our star doodle, or step through the portal to enter the arena.
+            </motion.p>
           </motion.div>
         </main>
-        <footer className="flex flex-wrap items-center justify-between gap-3 font-['Space_Grotesk'] text-xs uppercase tracking-[0.18em] opacity-70">
+        <motion.footer 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.8 }}
+          className="flex flex-wrap items-center justify-between gap-3 font-['Space_Grotesk'] text-xs uppercase tracking-[0.18em] opacity-70"
+        >
           <span>© 2026 Stick League</span>
           <span>Season 01 · Now live</span>
-        </footer>
+        </motion.footer>
       </div>
     </div>
   );
