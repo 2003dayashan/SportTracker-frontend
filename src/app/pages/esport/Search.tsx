@@ -298,3 +298,4 @@ const EmptyState: React.FC<{ label: string }> = ({ label }) => (
 );
 
 export default Search;
+
