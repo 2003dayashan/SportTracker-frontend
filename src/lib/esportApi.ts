@@ -11,7 +11,7 @@
 // `.authenticated()` / `.hasRole("ADMIN")`. Make sure you've already
 // signed in via /api/auth/signin before calling create/update/delete.
 
-const BASE_URL = (import.meta as any).env.VITE_API_URL || "";
+const API_BASE = (import.meta as any).env.VITE_API_URL || "";
 
 // ---------- Types (mirrors the Java models/DTOs) ----------
 
@@ -134,7 +134,7 @@ async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include", // sends the session cookie set by /api/auth/signin
     headers: {
       "Content-Type": "application/json",
@@ -160,7 +160,7 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-// ---------- Tournaments ----------
+// ---------- Existing API objects (kept for backward compatibility) ----------
 
 export const TournamentApi = {
   list: (params?: {
@@ -198,8 +198,6 @@ export const TournamentApi = {
     request<void>(`/api/tournaments/${id}`, { method: "DELETE" }),
 };
 
-// ---------- Teams ----------
-
 export const TeamApi = {
   list: () => request<Team[]>(`/api/teams`),
 
@@ -224,11 +222,11 @@ export const TeamApi = {
     request<void>(`/api/teams/${id}`, { method: "DELETE" }),
 };
 
-// ---------- Players ----------
-
 export const PlayerApi = {
   list: (teamId?: string) =>
-    request<Player[]>(`/api/players${teamId ? `?teamId=${teamId}` : ""}`),
+    request<Player[]>(
+      `/api/players${teamId ? `?teamId=${teamId}` : ""}`
+    ),
 
   get: (id: string) => request<Player>(`/api/players/${id}`),
 
@@ -251,8 +249,6 @@ export const PlayerApi = {
     request<void>(`/api/players/${id}`, { method: "DELETE" }),
 };
 
-// ---------- Matches ----------
-
 export const MatchApi = {
   get: (id: string) => request<Match>(`/api/matches/${id}`),
 
@@ -267,9 +263,10 @@ export const MatchApi = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
-};
 
-// ---------- Bracket & Standings ----------
+  // Added list method for completeness
+  list: () => request<Match[]>(`/api/matches`),
+};
 
 export const BracketApi = {
   get: (tournamentId: string) =>
@@ -281,10 +278,112 @@ export const StandingsApi = {
     request<StandingDto[]>(`/api/tournaments/${tournamentId}/standings`),
 };
 
-// ---------- Admin Dashboard ----------
-
 export const DashboardApi = {
   stats: () => request<DashboardStats>(`/api/admin/dashboard`),
+};
+
+// ---------- New flat esportApi export (as per task requirements) ----------
+
+export const esportApi = {
+  fetchTournaments: async (): Promise<Tournament[]> => {
+    const res = await TournamentApi.list();
+    return res.content;
+  },
+
+  createTournament: async (data: Omit<Tournament, "id">): Promise<Tournament> => {
+    // Convert Omit<Tournament, 'id'> to TournamentRequest
+    const req: TournamentRequest = {
+      name: data.name,
+      game: data.game,
+      format: data.format,
+      status: data.status,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      maxTeams: data.maxTeams,
+    };
+    return TournamentApi.create(req);
+  },
+
+  fetchTournamentById: async (id: string): Promise<Tournament> => {
+    return TournamentApi.get(id);
+  },
+
+  updateTournament: async (
+    id: string,
+    data: Partial<Tournament>
+  ): Promise<Tournament> => {
+    // Convert Partial<Tournament> to TournamentRequest, ignoring undefined fields
+    const req: TournamentRequest = {
+      name: data.name ?? "",
+      game: data.game ?? "",
+      format: data.format ?? "SINGLE_ELIMINATION",
+      status: data.status ?? "UPCOMING",
+      startDate: data.startDate ?? new Date().toISOString(),
+      endDate: data.endDate ?? new Date().toISOString(),
+      maxTeams: data.maxTeams ?? 8,
+    };
+    return TournamentApi.update(id, req);
+  },
+
+  deleteTournament: async (id: string): Promise<void> => {
+    return TournamentApi.remove(id);
+  },
+
+  fetchTeams: async (): Promise<Team[]> => {
+    return TeamApi.list();
+  },
+
+  createTeam: async (data: Omit<Team, "id">): Promise<Team> => {
+    // Convert Omit<Team, 'id'> to TeamRequest
+    const req: TeamRequest = {
+      name: data.name,
+      tournamentId: data.tournamentId,
+      logoUrl: data.logoUrl,
+    };
+    return TeamApi.create(req);
+  },
+
+  fetchPlayers: async (): Promise<Player[]> => {
+    return PlayerApi.list();
+  },
+
+  createPlayer: async (data: Omit<Player, "id">): Promise<Player> => {
+    // Convert Omit<Player, 'id'> to PlayerRequest
+    const req: PlayerRequest = {
+      username: data.username,
+      teamId: data.teamId,
+      role: data.role,
+    };
+    return PlayerApi.create(req);
+  },
+
+  fetchMatches: async (): Promise<Match[]> => {
+    return MatchApi.list();
+  },
+
+  createMatch: async (data: Omit<Match, "id">): Promise<Match> => {
+    return MatchApi.create(data);
+  },
+
+  updateMatchScore: async (
+    id: string,
+    scoreA: number,
+    scoreB: number
+  ): Promise<Match> => {
+    return MatchApi.updateScore(id, { scoreA, scoreB });
+  },
+
+  fetchTournamentBracket: async (
+    tournamentId: string
+  ): Promise<Match[]> => {
+    return BracketApi.get(tournamentId);
+  },
+
+  fetchTournamentStandings: async (
+    tournamentId: string
+  ): Promise<StandingDto[]> => {
+    return StandingsApi.get(tournamentId);
+  },
 };
 
 export { ApiError };
