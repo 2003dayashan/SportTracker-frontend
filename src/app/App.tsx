@@ -403,9 +403,9 @@ export default function App() {
             <Leagues
               isAdmin={isAdmin}
               onBack={() => setPage("football-home")}
-              onViewStandings={(id, name) => {
+              onViewStandings={(id, name) => {      // ← ADD name param
                 setSelectedLeagueId(id);
-                setSelectedLeagueName(name);
+                setSelectedLeagueName(name);         // ← USE actual league name
                 setPage("football-standings");
               }}
               onViewFixtures={(id) => {
