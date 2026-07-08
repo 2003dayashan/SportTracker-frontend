@@ -1,4 +1,9 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
+import ReplayVideoModal, { type PlayableVideo } from '../../components/ReplayVideoModal';
+import replayA from '../../../imports/replay-hooded-figure.mp4';
+import replayB from '../../../imports/replay-sword-slash.mp4';
+import replayC from '../../../imports/replay-fire-duel.mp4';
 
 interface ChatMessage {
   username: string;
@@ -6,8 +11,47 @@ interface ChatMessage {
   isPrimary?: boolean;
 }
 
-const Home: React.FC = () => {
+interface ReplayClip extends PlayableVideo {
+  id: string;
+  thumbnail: string;
+  duration: string;
+}
+
+const REPLAYS: ReplayClip[] = [
+  {
+    id: 'replay-1',
+    title: 'NIGHT CRAWLER — CLEAR RUN',
+    thumbnail:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAp5F6cyhSYAqZ8KaFizjwRFWXsQluh5oHMi23zXade65XZXcS1z0d6k7Aaing_Rf-AyWGpRqsaRzC4jWQ-PT5CsnxpTx4uUsfrdbPbtSFvdAylwwFr1Uaug318Y8VDjZIyJFm_RRfudqbVaXH6H2H0vT_kfTfO4phyW2ip6dLgjmkHcwOPr9r6vdfr9zKKjyU2HaFXgxWqefoUjx9-g79l7ygwsJql7TlodjjW_zeIgQ8o_w94Bs4FTuW_4j55y54wsqycC8vdp3U',
+    video: replayA,
+    duration: '03:42',
+  },
+  {
+    id: 'replay-2',
+    title: 'SILENT STRIKE — NO DAMAGE TAKEN',
+    thumbnail:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDLOYX6xbvJ_bVqd5kQ_osIsf3Gv88jHawGqTrdbjbNXroR1mk5_cUwcsth7BVi2s15rHFiFt33ki6ghsoBoeO1BFWIIOzYX5wGvTrE3TqzwQwMUEPal9ewYTTj0d_J12DFZeczt3Xpj6SXyacaTk-8WR41EGjsYZCrNtIpRvbwLCYoBjveKG-cZ9gu7SbzQZYhxCQz8k6RreCcSe8MH8un8d8XpjUTtEiFmMVHSt6H2U2DfpFUbUeaijELaeBAWvzSW8VWUSXOGhA',
+    video: replayB,
+    duration: '01:15',
+  },
+  {
+    id: 'replay-3',
+    title: 'INK SPILL — 50K DAMAGE COMBO',
+    thumbnail:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuD_xBT7A2SRTZJlDbQ81Zsu2sQnDz3M9N-8yhuBcRQ6talK1_UIPNYZSUL5Y4jemd0f6UEO7mG32GqzS6PCekNGXVgziDzQpwbNVHX2onemvHgO2PyD29GoqX1T-XLICPDI4MpgiSyNas2GcvPwkWteDW7WJWN4aPEzEqb7WC9grtgFb8Zu80nP1xZNn6vwgyy7Ma7oQlfv0rhp4xEZPp8eNh5gFNL75tx02QU4EQxGZPPom6NSZLWxOWI7qqGhoIZ1ck-kjavMyis',
+    video: replayC,
+    duration: '02:30',
+  },
+];
+
+interface HomeProps {
+  onNavigate?: (page: string) => void;
+}
+
+const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [contractAccepted, setContractAccepted] = useState(false);
+  const [playingReplay, setPlayingReplay] = useState<ReplayClip | null>(null);
+  const [detailsContract, setDetailsContract] = useState<{ title: string; desc: string; reward: string } | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { username: 'CYBER_PUNK', text: 'Just cleared Night Crawler on Hard. Insane.', isPrimary: true },
     { username: 'GHOST_USER', text: 'Anyone looking for a squad for Season 01?' },
@@ -30,10 +74,8 @@ const Home: React.FC = () => {
           <div className="flex items-baseline gap-4">
             <span className="font-display text-7xl md:text-8xl leading-none text-on-surface tracking-tight font-black">LEVEL 42</span>
           </div>
-          <div className="relative h-4 w-full bg-surface-container-high border border-outline-variant/30">
-            <div className="absolute top-0 left-0 h-full bg-primary-container red-inner-glow" style={{ width: '78%', opacity: 0.9 }}>
-              <div className="absolute right-0 top-0 h-full w-4 bg-white/20 animate-pulse"></div>
-            </div>
+          <div className="relative h-[3px] w-full bg-surface-container-high">
+            <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: '78%' }}></div>
           </div>
           <div className="flex justify-between font-mono text-[10px] uppercase font-bold text-on-surface-variant">
             <span className="text-primary font-black">XP: 145,200 / 180,000</span>
@@ -113,7 +155,12 @@ const Home: React.FC = () => {
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
                 <span className="font-display text-xl text-primary font-bold">4,500 SC</span>
-                <button className="font-mono text-[10px] hover:text-primary transition-colors font-bold tracking-wider">DETAILS</button>
+                <button
+                  onClick={() => setDetailsContract({ title: 'SILENT STRIKE', desc: 'Win 3 matches without losing a single life.', reward: '4,500 SC' })}
+                  className="font-mono text-[10px] hover:text-primary transition-colors font-bold tracking-wider"
+                >
+                  DETAILS
+                </button>
               </div>
             </div>
 
@@ -137,7 +184,12 @@ const Home: React.FC = () => {
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
                 <span className="font-display text-xl text-primary font-bold">6,200 SC</span>
-                <button className="font-mono text-[10px] hover:text-primary transition-colors font-bold tracking-wider">DETAILS</button>
+                <button
+                  onClick={() => setDetailsContract({ title: 'INK SPILL', desc: 'Deal 50,000 total damage in any tournament mode.', reward: '6,200 SC' })}
+                  className="font-mono text-[10px] hover:text-primary transition-colors font-bold tracking-wider"
+                >
+                  DETAILS
+                </button>
               </div>
             </div>
           </div>
@@ -146,39 +198,27 @@ const Home: React.FC = () => {
           <div className="space-y-6 pt-12 text-left">
             <h2 className="font-display text-3xl text-on-surface uppercase tracking-tight font-bold border-l-4 border-primary pl-4 leading-none">LATEST REPLAYS</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="aspect-video bg-surface-container-high border border-outline-variant relative group cursor-pointer overflow-hidden">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp5F6cyhSYAqZ8KaFizjwRFWXsQluh5oHMi23zXade65XZXcS1z0d6k7Aaing_Rf-AyWGpRqsaRzC4jWQ-PT5CsnxpTx4uUsfrdbPbtSFvdAylwwFr1Uaug318Y8VDjZIyJFm_RRfudqbVaXH6H2H0vT_kfTfO4phyW2ip6dLgjmkHcwOPr9r6vdfr9zKKjyU2HaFXgxWqefoUjx9-g79l7ygwsJql7TlodjjW_zeIgQ8o_w94Bs4FTuW_4j55y54wsqycC8vdp3U" 
-                  alt="Replay 1"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="material-symbols-outlined text-5xl text-white">play_circle</span>
-                </div>
-                <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 font-mono text-[9px] font-bold">03:42</div>
-              </div>
-              <div className="aspect-video bg-surface-container-high border border-outline-variant relative group cursor-pointer overflow-hidden">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLOYX6xbvJ_bVqd5kQ_osIsf3Gv88jHawGqTrdbjbNXroR1mk5_cUwcsth7BVi2s15rHFiFt33ki6ghsoBoeO1BFWIIOzYX5wGvTrE3TqzwQwMUEPal9ewYTTj0d_J12DFZeczt3Xpj6SXyacaTk-8WR41EGjsYZCrNtIpRvbwLCYoBjveKG-cZ9gu7SbzQZYhxCQz8k6RreCcSe8MH8un8d8XpjUTtEiFmMVHSt6H2U2DfpFUbUeaijELaeBAWvzSW8VWUSXOGhA" 
-                  alt="Replay 2"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="material-symbols-outlined text-5xl text-white">play_circle</span>
-                </div>
-                <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 font-mono text-[9px] font-bold">01:15</div>
-              </div>
-              <div className="aspect-video bg-surface-container-high border border-outline-variant relative group cursor-pointer overflow-hidden">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_xBT7A2SRTZJlDbQ81Zsu2sQnDz3M9N-8yhuBcRQ6talK1_UIPNYZSUL5Y4jemd0f6UEO7mG32GqzS6PCekNGXVgziDzQpwbNVHX2onemvHgO2PyD29GoqX1T-XLICPDI4MpgiSyNas2GcvPwkWteDW7WJWN4aPEzEqb7WC9grtgFb8Zu80nP1xZNn6vwgyy7Ma7oQlfv0rhp4xEZPp8eNh5gFNL75tx02QU4EQxGZPPom6NSZLWxOWI7qqGhoIZ1ck-kjavMyis" 
-                  alt="Replay 3"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="material-symbols-outlined text-5xl text-white">play_circle</span>
-                </div>
-                <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 font-mono text-[9px] font-bold">02:30</div>
-              </div>
+              {REPLAYS.map((clip) => (
+                <motion.div
+                  key={clip.id}
+                  onClick={() => setPlayingReplay(clip)}
+                  whileHover={{ y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="aspect-video bg-surface-container-high border border-outline-variant relative group cursor-pointer overflow-hidden"
+                >
+                  <img
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    src={clip.thumbnail}
+                    alt={clip.title}
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined text-5xl text-white">play_circle</span>
+                  </div>
+                  <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 font-mono text-[9px] font-bold">
+                    {clip.duration}
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>
@@ -225,7 +265,12 @@ const Home: React.FC = () => {
                 <span className="font-mono text-xs text-primary font-bold">15.4K</span>
               </div>
             </div>
-            <button className="w-full mt-8 py-3.5 border border-primary text-primary font-display text-sm tracking-wider font-extrabold hover:bg-primary hover:text-black transition-all">VIEW FULL RANKINGS</button>
+            <button
+              onClick={() => onNavigate?.('esport-leaderboard')}
+              className="w-full mt-8 py-3.5 border border-primary text-primary font-display text-sm tracking-wider font-extrabold hover:bg-primary hover:text-black transition-all"
+            >
+              VIEW FULL RANKINGS
+            </button>
           </div>
 
           {/* LIVE FEED / CHATTER */}
@@ -256,9 +301,34 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* REPLAY VIDEO MODAL */}
+      <ReplayVideoModal video={playingReplay} onClose={() => setPlayingReplay(null)} />
+
+      {/* CONTRACT DETAILS MODAL */}
+      {detailsContract && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setDetailsContract(null)}>
+          <div
+            className="bg-surface-container border-2 border-primary p-8 max-w-md w-full text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display text-3xl text-primary mb-3 uppercase tracking-wider font-bold">{detailsContract.title}</h3>
+            <p className="font-sans text-sm text-on-surface-variant leading-relaxed font-medium mb-6">{detailsContract.desc}</p>
+            <div className="flex justify-between items-center mb-6">
+              <span className="font-mono text-[10px] text-on-surface-variant uppercase font-bold">REWARD</span>
+              <span className="font-display text-xl text-primary font-bold">{detailsContract.reward}</span>
+            </div>
+            <button
+              onClick={() => setDetailsContract(null)}
+              className="w-full py-3 bg-primary-container text-white font-display text-sm tracking-wider font-extrabold hover:bg-[#a23d36] transition-colors"
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Home;
-

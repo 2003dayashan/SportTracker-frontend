@@ -11,15 +11,17 @@ interface LayoutProps {
   currentPage: EsportPage;
   onNavigate: (page: EsportPage) => void;
   onExit: () => void;
+  isAdmin: boolean;
+  username?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, onExit }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, onExit, isAdmin, username }) => {
   return (
     <EsportThemeProvider>
       <div className="flex min-h-screen font-sans">
-        <Sidebar currentPage={currentPage} onNavigate={onNavigate} onExit={onExit} />
+        <Sidebar currentPage={currentPage} onNavigate={onNavigate} onExit={onExit} isAdmin={isAdmin} />
         <div className="flex-1 flex flex-col min-w-0">
-          <TopNav />
+          <TopNav username={username} isAdmin={isAdmin} />
           <main className="p-8 flex-1 overflow-y-auto">
             <AnimatePresence mode="wait">
               <motion.div
@@ -40,4 +42,3 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, onEx
 };
 
 export default Layout;
-

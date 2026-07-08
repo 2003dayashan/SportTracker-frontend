@@ -34,7 +34,7 @@ const Profile: React.FC<ProfileProps> = ({ playerId }) => {
       .catch(async (err) => {
         // If specific ID fails, try getting list of players and taking the first one
         try {
-          const playersList = await PlayerApi.getAll();
+          const playersList = await PlayerApi.list();
           if (playersList.length > 0 && !cancelled) {
             const firstPlayer = playersList[0];
             setPlayer(firstPlayer);
