@@ -1,15 +1,9 @@
 // src/pages/esport/TopNav.tsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell } from 'lucide-react';
 import { useEsportTheme } from './EsportThemeContext';
 
-interface TopNavProps {
-  username?: string;
-  isAdmin?: boolean;
-}
-
-const TopNav: React.FC<TopNavProps> = ({ username, isAdmin }) => {
+const TopNav: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('all');
   const { theme, toggleTheme } = useEsportTheme();
@@ -19,8 +13,6 @@ const TopNav: React.FC<TopNavProps> = ({ username, isAdmin }) => {
     if (!searchQuery.trim()) return;
     alert(`Searching for "${searchQuery}" in category: ${searchCategory.toUpperCase()}`);
   };
-
-  const initials = (username || 'SL').slice(0, 2).toUpperCase();
 
   return (
     <header className="flex flex-col md:flex-row items-stretch md:items-center justify-between px-8 py-4 bg-[var(--e-nav-bg)] border-b border-[var(--e-border)] gap-4 shrink-0">
@@ -104,28 +96,8 @@ const TopNav: React.FC<TopNavProps> = ({ username, isAdmin }) => {
             </AnimatePresence>
           </motion.button>
 
-          {/* Notification bell */}
-          <button
-            type="button"
-            title="Notifications"
-            className="relative h-8 w-8 rounded-full border border-[var(--e-border)] bg-[var(--e-card-bg-2)] flex items-center justify-center hover:border-[var(--e-accent)] transition-colors"
-          >
-            <Bell size={14} strokeWidth={2.25} className="text-[var(--e-text-muted)]" />
-          </button>
-
-          {/* Avatar + name/role */}
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full border border-[var(--e-accent)] bg-[var(--e-card-bg)] flex items-center justify-center cursor-pointer hover:scale-105 transition-all overflow-hidden shrink-0">
-              <span className="text-[10px] font-black text-[var(--e-accent)]">{initials}</span>
-            </div>
-            {username && (
-              <div className="hidden lg:flex flex-col leading-none text-left">
-                <span className="text-[10px] font-black text-[var(--e-text)] tracking-wider uppercase">{username}</span>
-                {isAdmin && (
-                  <span className="text-[9px] text-[var(--e-accent)] font-bold tracking-widest uppercase mt-0.5">LEAGUE ADMIN</span>
-                )}
-              </div>
-            )}
+          <div className="h-8 w-8 rounded-full border border-[var(--e-accent)] bg-[var(--e-card-bg)] flex items-center justify-center cursor-pointer hover:scale-105 transition-all overflow-hidden">
+            <span className="text-[10px] font-black text-[var(--e-accent)]">42</span>
           </div>
         </div>
       </div>
