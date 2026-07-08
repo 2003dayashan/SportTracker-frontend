@@ -154,7 +154,7 @@ export function AdminUserManagementPage({ onBack }: AdminUserManagementPageProps
       const res = await fetch(`/api/admin/users/${editingUser.id}/roles`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editedRoles),
+        body: JSON.stringify({ roles: editedRoles }),
         credentials: "include"
       });
       if (!res.ok) throw new Error("Failed to update roles");
